@@ -1,0 +1,23 @@
+#namedef start A;
+#namedef oneA B;
+#define DEBUG;
+
+/*Build automaton that accepts words with at least 1 a*/
+create_new DFA a,b;
+add start, oneA;
+connect start -> a:oneA, b:start;
+connect oneA -> a:oneA, b:oneA;
+node_accept oneA;
+
+#ifdef DEBUG;
+	show all;
+#endif;
+
+execute a;
+
+#ifdef MORE_TESTS;
+execute bbb;
+execute aaa;
+execute aba;
+execute bab;
+#endif;
