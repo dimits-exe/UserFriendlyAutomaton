@@ -1,0 +1,123 @@
+package automaton;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+
+public class NFA extends FiniteAutomaton {
+
+	
+	public static void main(String[] args) {
+		char[] alph = {'a','b'};
+		FiniteAutomaton aut = new NFA(alph);
+		aut.addNode('A');
+		aut.addNode('B',true);
+		aut.connect('A', EMPTY, 'B');
+		aut.connect('A', 'a', 'A');
+		aut.connect('B', 'a', 'A');
+		System.out.println(aut);
+		System.out.println(aut.formatAnswer("e"));
+	}
+	
+	public NFA(char[] alphabet) throws IllegalArgumentException {
+		super(alphabet);
+	}
+	
+	@Override
+	protected Node createNode(char name) {
+		return new NFANode(name);
+	}
+	
+	@Override
+	public void connect(char nodeName, char letter, char targetName) {
+		if(letter != EMPTY && findInAlphabet(letter) == -1)
+			throw new IllegalArgumentException("The letter " + letter + " does not belong in the alphabet");
+		((NFANode) node(nodeName)).connect(letter, (NFANode) node(targetName));
+	}
+	
+	/**
+	 * Takes any string and runs it through the automaton, returns whether or not it's accepted.
+	 * @param word
+	 * @return true if accepted, false otherwise
+	 * @throws IllegalStateException if there are no nodes in the automaton.
+	 */
+	@Override
+	public boolean isAccepted(String word) throws IllegalStateException {
+		if(size() == 0)
+			throw new IllegalStateException("This automaton is empty");
+		
+		boolean oneSuccessful = false; //at least one state was accepted
+		NFANode n = (NFANode) first;
+		HashSet<NFANode> currentNodes;
+		
+		for(char c : word.toCharArray()) {
+			currentNodes = E(n.move(c));
+			
+			if(currentNodes.isEmpty()) //if no valid connection
+				return false;
+			
+			for(Node state : currentNodes) {
+				System.out.println("Reading node " + state.name );
+				if(isLast(state.name))
+					oneSuccessful = true;
+			}
+		} 
+		
+		return oneSuccessful; 
+	}
+	
+	//return all empty states from all nodes
+	private static HashSet<NFANode> E(HashSet<NFANode> nodes) { 
+		if(nodes != null)
+			for(NFANode node : nodes) 
+				nodes.addAll(node.emptyMoves());
+		else
+			nodes = new HashSet<NFANode>(); //return empty set
+		
+		return nodes;
+	}
+	
+	
+	private class NFANode extends Node {	
+		final HashMap<Character,HashSet<NFANode>> adjacents;
+		
+		NFANode(char name){
+			super(name);
+			adjacents = new HashMap<Character,HashSet<NFANode>>();
+		}
+		
+		void connect(char letter, NFANode target) {
+			if(adjacents.get(letter) == null)  
+				adjacents.put(letter, new HashSet<NFANode>());
+			 adjacents.get(letter).add(target);
+		}
+		
+		HashSet<NFANode> move(char c) {
+			return adjacents.get(c);
+		}
+		
+		//get all e-moves from this node
+		HashSet<NFANode> emptyMoves() { 
+			HashSet<NFANode> e_nodes = new HashSet<NFANode>();
+			if(adjacents.get(EMPTY) != null)
+				for(NFANode node : adjacents.get(EMPTY)) 
+					e_nodes.addAll(node.emptyMoves()); //keep collecting e-moves for every e-node
+			
+				
+			return e_nodes;
+		}
+
+		@Override
+		public String toString() {
+			StringBuilder sb = new StringBuilder(name + " = ");
+			
+			//attach connections
+			for(Map.Entry<Character,HashSet<NFANode>> e : adjacents.entrySet()) {
+				sb.append(String.format("\t%c --> ",e.getKey()));
+				for(NFANode n : e.getValue()) sb.append(n.name+",");
+				sb.append("\n");
+			}
+			
+			return sb.toString();
+		}
+	}
+}
