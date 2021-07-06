@@ -206,6 +206,8 @@ enum Command {
 	// general static data
 		static final HashMap<String,Command> commands = new HashMap<String,Command>();
 		
+		static final String[] reservedWords = {"all", "->", "to", ":", "dfa","nfa", "DFA","NFA"};
+		
 		/**A description of all defined commands, automatically created at program execution*/ 
 		static final String COMMAND_HELP_LIST; 
 		
