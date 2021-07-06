@@ -555,7 +555,7 @@ public final class AutomatonEditor extends JFrame {
 		}
 		
 		//syntaxHighliting
-		JMenu syntaxMenu = new JMenu("Syntax Highliting");
+		JMenu syntaxMenu = new JMenu("Syntax Highlighting");
 		
 			//comments
 			JMenu commentColorMenu = new JMenu("Comments");
