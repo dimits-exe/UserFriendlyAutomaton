@@ -105,23 +105,37 @@ class BackgroundRuntime {
 	 */
 	@SuppressWarnings("rawtypes")
 	private class InterpreterWorker extends SwingWorker{
-
+		
+		private void success() {
+			autedit.changeBorder(true);
+			output.setText(""); //clear area
+			output.setVisible(false);
+		}
+		
+		private void failure() {
+			autedit.changeBorder(false);
+			output.setVisible(true);
+		}
+		
 		@Override
 		protected Object doInBackground() throws Exception {
 			synchronized(threadIsWorking) {
 				threadIsWorking = true;
 			}
 			
+			if(getText().isBlank()) {
+				success();
+				return null;
+			}
+				
+			
 			AutomatonInterpreter interp = new AutomatonInterpreter(new PrintStream(new NullOutputStream()),
 					new PrintStream(new ConsoleOutputStream(Color.RED, null, output.getDocument(), output, true),true));
 			
 			if(interp.executeBatch(doc.getText(0, doc.getLength()))) { 
-				autedit.changeBorder(true);
-				output.setText(""); //clear area
-				output.setVisible(false);
+				success();
 			} else {
-				autedit.changeBorder(false);
-				output.setVisible(true);
+				failure();
 			}
 			
 			return null;
