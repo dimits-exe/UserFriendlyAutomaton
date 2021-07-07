@@ -601,7 +601,7 @@ public final class AutomatonEditor extends JFrame {
 				preprocessorColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
 				preprocessorColorMenu.add(preprocessorColorItems[i]);
 				preprocessorButtonGroup.add(preprocessorColorItems[i]);
-				preprocessorColorItems[i].addActionListener(new SyntaxColorHandler(preprocessorColorItems, TextType.PREPROCESSOR));[i].addActionListener(new SyntaxColorHandler(preprocessorColorItems, TextType.PREPROCESSOR));
+				preprocessorColorItems[i].addActionListener(new SyntaxColorHandler(preprocessorColorItems, TextType.PREPROCESSOR));
 			}
 			
 			//reserved words
