@@ -28,6 +28,8 @@ import java.util.Scanner;
 import interpreter.AutomatonInterpreter;
 import interpreter.Preprocessor;
 
+import editor.CustomStyledDocument.TextType;
+
 /**
  * A GUI implementation of an automaton interpreter. Designed to be heavily modifiable and user-friendly.
  * Uses multithreading to deal with heavy procedures and avoid blocking of UI components.
@@ -163,6 +165,7 @@ public final class AutomatonEditor extends JFrame {
 		JScrollPane codeAreaScroll = new JScrollPane(codeArea, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
 				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		codeAreaScroll.setRowHeaderView(new TextLineNumber(codeArea));
+		codeAreaScroll.setMinimumSize(new Dimension(400,400));
 		
 
 		//rest of screens
@@ -272,10 +275,13 @@ public final class AutomatonEditor extends JFrame {
 		data.UIPreferrence = 0;
 		
 		data.syntaxColors = new Color[4];
-		data.syntaxColors[0] = Color.ORANGE;
-		data.syntaxColors[1] = Color.BLUE;
-		data.syntaxColors[2] = Color.GRAY;
-		data.syntaxColors[3] = Color.RED;
+		data.syntaxColors[TextType.INTERPRETER.index] = Color.ORANGE;
+		data.syntaxColors[TextType.PREPROCESSOR.index] = Color.BLUE;
+		data.syntaxColors[TextType.COMMENTS.index] = Color.GRAY;
+		data.syntaxColors[TextType.RESERVED.index] = Color.ORANGE;
+		
+		for(TextType type : TextType.values())
+			textDocument.changeColors(type, data.syntaxColors[type.index]);
 		
 		saveSettings();
 		setMenuData();	
@@ -292,10 +298,10 @@ public final class AutomatonEditor extends JFrame {
 		textSizeItems[findObject(textSizes,data.textSize)].setSelected(true);
 		lookAndFeelItems[data.UIPreferrence].setSelected(true);	
 		
-		commentColorItems[findObject(colors, data.syntaxColors[2])].setSelected(true);
-		reservedColorItems[findObject(colors, data.syntaxColors[3])].setSelected(true);
-		commandColorItems[findObject(colors, data.syntaxColors[0])].setSelected(true);
-		preprocessorColorItems[findObject(colors, data.syntaxColors[1])].setSelected(true);
+		commentColorItems[findObject(colors, data.syntaxColors[TextType.COMMENTS.index])].setSelected(true);
+		reservedColorItems[findObject(colors, data.syntaxColors[TextType.RESERVED.index])].setSelected(true);
+		commandColorItems[findObject(colors, data.syntaxColors[TextType.INTERPRETER.index])].setSelected(true);
+		preprocessorColorItems[findObject(colors, data.syntaxColors[TextType.PREPROCESSOR.index])].setSelected(true);
 		
 	}
 	
@@ -467,12 +473,16 @@ public final class AutomatonEditor extends JFrame {
 		JMenuItem openItem = new JMenuItem("Open...");
 		JMenuItem saveItem = new JMenuItem("Save");
 		JMenuItem saveAsItem = new JMenuItem("Save As...");
+		JMenuItem clearConsoleItem = new JMenuItem("Clear Console");
 		JMenuItem exitItem = new JMenuItem("Exit");
+		
 		fileMenu.add(newItem);
 		fileMenu.add(openItem);
 		fileMenu.add(saveItem);
 		fileMenu.add(saveAsItem);
+		fileMenu.add(clearConsoleItem);
 		fileMenu.add(exitItem);
+		
 		newItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -504,6 +514,13 @@ public final class AutomatonEditor extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				showSaveAsDialog();   
+			}
+		});
+		
+		clearConsoleItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				AutomatonEditor.this.interpreterConsole.setText("");
 			}
 		});
 		
@@ -554,8 +571,8 @@ public final class AutomatonEditor extends JFrame {
 			noErrorColorItems[i].addActionListener(outputColorHandler);
 		}
 		
-		//syntaxHighliting
-		JMenu syntaxMenu = new JMenu("Syntax Highlighting");
+		//syntaxHighlighting
+		JMenu syntaxMenu = new JMenu("Syntax highlighting");
 		
 			//comments
 			JMenu commentColorMenu = new JMenu("Comments");
@@ -564,7 +581,7 @@ public final class AutomatonEditor extends JFrame {
 				commentColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
 				commentColorMenu.add(commentColorItems[i]);
 				commentButtonGroup.add(commentColorItems[i]);
-				commentColorItems[i].addActionListener(new SyntaxColorHandler(commentColorItems, CustomStyledDocument.TextType.COMMENTS));
+				commentColorItems[i].addActionListener(new SyntaxColorHandler(commentColorItems, TextType.COMMENTS));
 			}
 			
 			//commands
@@ -574,7 +591,7 @@ public final class AutomatonEditor extends JFrame {
 				commandColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
 				commandColorMenu.add(commandColorItems[i]);
 				commandButtonGroup.add(commandColorItems[i]);
-				commandColorItems[i].addActionListener(new SyntaxColorHandler(commandColorItems, CustomStyledDocument.TextType.INTERPRETER));
+				commandColorItems[i].addActionListener(new SyntaxColorHandler(commandColorItems, TextType.INTERPRETER));
 			}
 			
 			//preprocessor
@@ -584,7 +601,7 @@ public final class AutomatonEditor extends JFrame {
 				preprocessorColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
 				preprocessorColorMenu.add(preprocessorColorItems[i]);
 				preprocessorButtonGroup.add(preprocessorColorItems[i]);
-				commandColorItems[i].addActionListener(new SyntaxColorHandler(commandColorItems, CustomStyledDocument.TextType.PREPROCESSOR));
+				commandColorItems[i].addActionListener(new SyntaxColorHandler(preprocessorColorItems, TextType.PREPROCESSOR));
 			}
 			
 			//reserved words
@@ -594,7 +611,7 @@ public final class AutomatonEditor extends JFrame {
 				reservedColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
 				reservedColorMenu.add(reservedColorItems[i]);
 				reservedButtonGroup.add(reservedColorItems[i]);
-				reservedColorItems[i].addActionListener(new SyntaxColorHandler(commandColorItems, CustomStyledDocument.TextType.RESERVED));
+				reservedColorItems[i].addActionListener(new SyntaxColorHandler(reservedColorItems, TextType.RESERVED));
 			}
 			
 			syntaxMenu.add(commentColorMenu);
@@ -654,7 +671,7 @@ public final class AutomatonEditor extends JFrame {
 				textSizeItems[1].setSelected(true);
 				
 				loadDefaultSettings();
-				System.out.println("Default settings loaded. Restart app for changes to apply.");
+				System.out.println("Default settings loaded. A restart might be needed for some changes to apply.");
 			}
 		});
 		
@@ -728,7 +745,6 @@ public final class AutomatonEditor extends JFrame {
 		
 	}
 
-	
 //handlers	
 	private class LookAndFeelHandler implements ActionListener {
 		@Override
@@ -768,19 +784,20 @@ public final class AutomatonEditor extends JFrame {
 	}
 	
 	private class SyntaxColorHandler implements ActionListener {
-		private CustomStyledDocument.TextType type;
+		private TextType type;
 		private JRadioButtonMenuItem[] items;
 		
-		SyntaxColorHandler(JRadioButtonMenuItem[] items, CustomStyledDocument.TextType type){
+		SyntaxColorHandler(JRadioButtonMenuItem[] items, TextType type){
 			this.type = type;
 			this.items = items;
 		}
+		
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			for (int i=0; i< colors.length;i++){
 				if(items[i].isSelected()) {
 					textDocument.changeColors(type, colors[i]);
-					data.syntaxColors[type.getIndex()] = colors[i];
+					data.syntaxColors[type.index] = colors[i];
 					break;
 				}	
 			}
