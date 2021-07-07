@@ -1,6 +1,8 @@
 # User Friendly Automaton
 A project containing data structures for different kinds of automata (DFAs/NFAs), a simple custom language defining operations on them, as well as a fully functional and customizable GUI editor.
 
+![Editor sample](https://media.discordapp.net/attachments/354913879471423492/862292105744875560/editor_display.gif?width=701&height=670)
+
 ## Automaton support
 Includes high-level implemenation of [DFAs](https://en.wikipedia.org/wiki/Deterministic_finite_automaton) and [NFAs](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton) but supports easy extensions for other similar theoretical machines, such as [PushDownAutomata](https://en.wikipedia.org/wiki/Pushdown_automaton) or even [Turing Machines](https://en.wikipedia.org/wiki/Turing_machine). Automata are represented as a set of connected nodes (graphs), as in most diagrams showcasing them.
 
