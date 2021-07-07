@@ -16,13 +16,13 @@ A windowed application whose main purpose is to enhance user experience while wr
 
 Features:
 1. A text area the user can use to write his program, as well as a console to print any output/error messages, distinguished by color.
-2. Syntax highliting.
-3. Customization options including different look and feel options, output colors and text size/font/style.
+2. Syntax highlighting.
+3. Customization options including different look and feel options, output colors and text color/size/font/style.
 4. Standard user services including redo/undo commands, save options and hotkeys.
 5. Background real-time error checking.
 6. Help tabs providing information about the way the language works.
 
 The application is multithreaded and can handle large workloads.
 
-Special to thanks to Rob Camick. The editor is implemented with the (now mostly defunct) Java swing library which leaves a lot to be desired in many usual GUI problems. Camick has openly provided tested, easy to understand classes that solve many of these problems, some of which are present in this project.
+Special thanks to Rob Camick. The editor is implemented with the (now mostly defunct) Java swing library which leaves a lot to be desired in many usual GUI problems. Camick has openly provided tested, easy to understand classes that solve many of these problems, some of which are present in this project.
 
