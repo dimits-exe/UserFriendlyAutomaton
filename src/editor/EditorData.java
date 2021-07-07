@@ -10,7 +10,7 @@ import java.io.Serializable;
  *
  */
 class EditorData implements Serializable {
-	private static final long serialVersionUID = 503080483445671398L;
+	private static final long serialVersionUID = 503080483345671378L;
 	
 	int UIPreferrence;
 	String textFont;
@@ -18,6 +18,7 @@ class EditorData implements Serializable {
 	int textSize;
 	Color errorColor;
 	Color noErrorColor;
+	Color [] syntaxColors;
 	
 	/*
 	 * Why do we need both the last file and the directory it's in?

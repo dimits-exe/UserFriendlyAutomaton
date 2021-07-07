@@ -29,7 +29,7 @@ class BackgroundRuntime {
 	/**
 	 * Time spent waiting for a change in the document to reset the timer.
 	 */
-	public static final int CHECKUP_TIME = 1500;
+	public static final int CHECKUP_TIME = 1000;
     
 	private final Timer timer;
 	private final Document doc;

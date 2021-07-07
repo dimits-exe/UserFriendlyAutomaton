@@ -23,33 +23,64 @@ import interpreter.Preprocessor;
  * @author dimits
  */
 class CustomStyledDocument extends DefaultStyledDocument {
+	
+	public static enum TextType{
+		INTERPRETER(0),
+		PREPROCESSOR(1),
+		COMMENTS(2),
+		RESERVED(3);
+		
+		public final int index;
+		
+		TextType(int i) {
+			index = i;
+		}
+	}
 
 	private static final long serialVersionUID = -1507512583034707644L;
 
-	private static final Set<String> interpreter_commands = new HashSet<String>();
-	private static final Set<String> preprocessor_commands = new HashSet<String>();
-	private static final Pattern[] patterns = new Pattern[3];
-	private static final AttributeSet[] colors = new AttributeSet[patterns.length];
+	private static final Pattern[] patterns = new Pattern[4];
     private final static StyleContext styleContext = StyleContext.getDefaultStyleContext();
+    private final static AttributeSet[] constants = new AttributeSet[patterns.length];
     
+	private final AttributeSet[] colors = new AttributeSet[patterns.length];
     private final AttributeSet defaultAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.BLACK);
     private Boolean isWorking = false; //no that's not a typo, it's a mutex
+    private boolean colorsChanged = false;
     
     static {
+    	Set<String> interpreter_commands = new HashSet<String>();
+    	Set<String> preprocessor_commands = new HashSet<String>();
+    	Set<String> reserved_words = new HashSet<String>();
+    	
     	for (String com : AutomatonInterpreter.getCommands())
     		interpreter_commands.add(com);
     	
     	for (String com : Preprocessor.getCommands())
     		preprocessor_commands.add(com);
     	
-    	patterns[0] = buildPattern(interpreter_commands);
-    	patterns[1] = buildPattern(preprocessor_commands);
-    	patterns[2] = Pattern.compile(Preprocessor.COMMENT_REGEX);
+    	for (String com : AutomatonInterpreter.getReservedWords())
+    		reserved_words.add(com);
     	
-    	colors[0] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.MAGENTA); 	//interpreter
-    	colors[1] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.BLUE);		//preprocessor
-    	colors[2] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.GRAY);   	//comments
+    	patterns[TextType.INTERPRETER.index] = buildPattern(interpreter_commands);
+    	patterns[TextType.PREPROCESSOR.index] = buildPattern(preprocessor_commands);
+    	patterns[TextType.COMMENTS.index] = Pattern.compile(Preprocessor.COMMENT_REGEX);
+    	patterns[TextType.RESERVED.index] = buildPattern(reserved_words);
+    	
+    	constants[TextType.INTERPRETER.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Bold, true);
+    	constants[TextType.PREPROCESSOR.index] = styleContext.getEmptySet();
+    	constants[TextType.COMMENTS.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Italic, true);
+    	constants[TextType.RESERVED.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Bold, true);
+    	
     }
+    
+    public CustomStyledDocument(Color commandColor, Color preprocessorColor, Color commentColor, Color reservedColor) {
+    	colors[TextType.INTERPRETER.index] 	= styleContext.addAttribute(constants[TextType.INTERPRETER.index], 	StyleConstants.Foreground, commandColor); 		//interpreter
+    	colors[TextType.PREPROCESSOR.index] = styleContext.addAttribute(constants[TextType.PREPROCESSOR.index], StyleConstants.Foreground, preprocessorColor);  //preprocessor
+    	colors[TextType.COMMENTS.index] 	= styleContext.addAttribute(constants[TextType.COMMENTS.index],		StyleConstants.Foreground, commentColor);   	//comments
+    	colors[TextType.RESERVED.index] 	= styleContext.addAttribute(constants[TextType.RESERVED.index], 	StyleConstants.Foreground, reservedColor); 		//reserved
+    }
+    
     
     @Override
     public void insertString(int offset, String text, AttributeSet attributeSet) throws BadLocationException {
@@ -61,6 +92,19 @@ class CustomStyledDocument extends DefaultStyledDocument {
     public void remove(int offset, int length) throws BadLocationException {
         super.remove(offset, length);
         handleTextChanged();
+    }
+    
+    public void changeColors(TextType cmd, Color color) {  
+    	if(colors[cmd.index] != color) {
+    		colors[cmd.index] = styleContext.addAttribute(constants[cmd.index], StyleConstants.Foreground, color);
+    		
+    		if(isWorking)
+    			colorsChanged = true;
+			else
+				try {
+					handleTextChanged();
+				} catch (BadLocationException e) {e.printStackTrace();}
+    	}
     }
     
 
@@ -92,7 +136,7 @@ class CustomStyledDocument extends DefaultStyledDocument {
         
         if (sb.length() > 0) 
             sb.deleteCharAt(sb.length() - 1); // Remove the trailing "|"
-        
+
         return Pattern.compile(sb.toString());
     }
 
@@ -102,8 +146,13 @@ class CustomStyledDocument extends DefaultStyledDocument {
         this.setCharacterAttributes(0, this.getLength(), defaultAttributeSet, true);
 
         // Look for tokens and highlight them
-        for(int i=0; i<3; i++) {
+        for(int i=0; i<4; i++) {
         	 Matcher matcher = patterns[i].matcher(this.getText(0, this.getLength()));
+        	 
+        	 if(colorsChanged) { //run again if the colors changed mid-update
+        		 colorsChanged = false;
+        		 updateTextStyles();
+        	 }
         	 
              while (matcher.find()) {
                  // Change the color of recognized tokens
@@ -132,8 +181,6 @@ class CustomStyledDocument extends DefaultStyledDocument {
 			}
 		}
 		    	
-    }
-
-         
+    } 
 
 }

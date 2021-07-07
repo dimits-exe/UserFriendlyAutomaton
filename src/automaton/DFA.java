@@ -47,8 +47,7 @@ public class DFA extends FiniteAutomaton {
 			throw new IllegalStateException("This automaton is empty");
 		
 		if(last.isEmpty()) { 
-			System.err.println("*Warning*: No accept-states specified: no word can be accepted");
-			return false;
+			throw new IllegalStateException("*Warning*: No accept-states specified: no word can be accepted");
 		}
 		
 		//calculation		

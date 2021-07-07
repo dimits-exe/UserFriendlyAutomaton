@@ -86,7 +86,7 @@ public abstract class FiniteAutomaton implements Automaton{
 		StringBuilder str = new StringBuilder();
 		
 		for(Entry<Character, FiniteAutomaton.Node> n : nodes.entrySet()) //for every node
-			str.append("Node " + n.getValue() + "\n");
+			str.append(String.format("Node %s: %s\n",n.getValue().name, n.getValue()));
 		
 		if(str.length() == 0)
 			return "There are no nodes in this automaton.";

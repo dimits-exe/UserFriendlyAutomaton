@@ -61,6 +61,10 @@ public class AutomatonInterpreter {
 			return c.description;
 	} 
 	
+	public static String[] getReservedWords() {
+		return Command.reservedWords;
+	}
+	
 //member methods
 		
 	/**
