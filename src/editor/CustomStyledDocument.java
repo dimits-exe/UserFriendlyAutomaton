@@ -30,19 +30,18 @@ class CustomStyledDocument extends DefaultStyledDocument {
 		COMMENTS(2),
 		RESERVED(3);
 		
-		private final int index;
+		public final int index;
 		
 		TextType(int i) {
 			index = i;
 		}
-		
-		int getIndex() {return index;}
 	}
 
 	private static final long serialVersionUID = -1507512583034707644L;
 
 	private static final Pattern[] patterns = new Pattern[4];
     private final static StyleContext styleContext = StyleContext.getDefaultStyleContext();
+    private final static AttributeSet[] constants = new AttributeSet[patterns.length];
     
 	private final AttributeSet[] colors = new AttributeSet[patterns.length];
     private final AttributeSet defaultAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.BLACK);
@@ -63,20 +62,23 @@ class CustomStyledDocument extends DefaultStyledDocument {
     	for (String com : AutomatonInterpreter.getReservedWords())
     		reserved_words.add(com);
     	
-    	patterns[0] = buildPattern(interpreter_commands);
-    	patterns[1] = buildPattern(preprocessor_commands);
-    	patterns[2] = Pattern.compile(Preprocessor.COMMENT_REGEX);
-    	patterns[3] = buildPattern(reserved_words);
+    	patterns[TextType.INTERPRETER.index] = buildPattern(interpreter_commands);
+    	patterns[TextType.PREPROCESSOR.index] = buildPattern(preprocessor_commands);
+    	patterns[TextType.COMMENTS.index] = Pattern.compile(Preprocessor.COMMENT_REGEX);
+    	patterns[TextType.RESERVED.index] = buildPattern(reserved_words);
+    	
+    	constants[TextType.INTERPRETER.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Bold, true);
+    	constants[TextType.PREPROCESSOR.index] = styleContext.getEmptySet();
+    	constants[TextType.COMMENTS.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Italic, true);
+    	constants[TextType.RESERVED.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Bold, true);
     	
     }
+    
     public CustomStyledDocument(Color commandColor, Color preprocessorColor, Color commentColor, Color reservedColor) {
-    	colors[1] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, preprocessorColor);							//preprocessor
-    	colors[0] = styleContext.addAttribute(
-    			styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Bold, true), StyleConstants.Foreground, commandColor); 		//interpreter
-    	colors[2] = styleContext.addAttribute(
-    			styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Italic, true), StyleConstants.Foreground, commentColor);   	//comments
-    	colors[3] = styleContext.addAttribute(
-    			styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Bold, true), StyleConstants.Foreground, reservedColor); 
+    	colors[TextType.INTERPRETER.index] 	= styleContext.addAttribute(constants[TextType.INTERPRETER.index], 	StyleConstants.Foreground, commandColor); 		//interpreter
+    	colors[TextType.PREPROCESSOR.index] = styleContext.addAttribute(constants[TextType.PREPROCESSOR.index], StyleConstants.Foreground, preprocessorColor);  //preprocessor
+    	colors[TextType.COMMENTS.index] 	= styleContext.addAttribute(constants[TextType.COMMENTS.index],		StyleConstants.Foreground, commentColor);   	//comments
+    	colors[TextType.RESERVED.index] 	= styleContext.addAttribute(constants[TextType.RESERVED.index], 	StyleConstants.Foreground, reservedColor); 		//reserved
     }
     
     
@@ -94,10 +96,14 @@ class CustomStyledDocument extends DefaultStyledDocument {
     
     public void changeColors(TextType cmd, Color color) {  
     	if(colors[cmd.index] != color) {
-    		colors[cmd.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, color);
+    		colors[cmd.index] = styleContext.addAttribute(constants[cmd.index], StyleConstants.Foreground, color);
     		
     		if(isWorking)
     			colorsChanged = true;
+			else
+				try {
+					handleTextChanged();
+				} catch (BadLocationException e) {e.printStackTrace();}
     	}
     }
     
@@ -175,8 +181,6 @@ class CustomStyledDocument extends DefaultStyledDocument {
 			}
 		}
 		    	
-    }
-
-         
+    } 
 
 }
