@@ -25,7 +25,6 @@ public class Preprocessor {
 	private HashSet<String> symbols;
 	private StringBuilder codeBuilder;	
 	
-	
 	/**
 	 * Returns a list of every command used by the interpreter.
 	 */
@@ -79,15 +78,16 @@ public class Preprocessor {
 	 */
 	String process(String code) throws SyntaxException { 
 		reset();
-		code = code.replaceAll(COMMENT_REGEX, "");
+		code = code.replaceAll(COMMENT_REGEX, "").replaceAll("(;)+", ";");
 		String[] commands = AutomatonInterpreter.splitCommands(code); //remove comments
 		boolean ignore = false;
 		
 		//process every line
 		for(String command: commands) { 	
+			command = command.strip();
 			String[] arguments = command.split(" ");
 			
-			switch(arguments[0].strip().toLowerCase()) {
+			switch(arguments[0].toLowerCase()) {
 			case DEFINE:
 				if(!ignore)
 					handleDefine(command);
@@ -167,7 +167,7 @@ public class Preprocessor {
 	}
 	
 	private String errorMessage(String message, String command) {
-		return String.format("%s\n\t at line %s", message, command);	
+		return String.format("%s\n\t at command %s", message, command);	
 	}
 	
 	private void reset() {
