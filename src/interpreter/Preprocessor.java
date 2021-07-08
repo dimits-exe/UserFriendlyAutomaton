@@ -3,7 +3,6 @@ package interpreter;
 import java.util.HashMap;
 import java.util.HashSet;
 
-
 /**
  * A class that extends the syntax available to the user by translating the code's text into interpreter readable commands.
  * Basically an extremely dumb version of the C preprocessor.
