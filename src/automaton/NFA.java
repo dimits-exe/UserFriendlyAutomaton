@@ -1,22 +1,10 @@
 package automaton;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
 public class NFA extends FiniteAutomaton {
-
-	
-	public static void main(String[] args) {
-		char[] alph = {'a','b'};
-		FiniteAutomaton aut = new NFA(alph);
-		aut.addNode('A');
-		aut.addNode('B',true);
-		aut.connect('A', EMPTY, 'B');
-		aut.connect('A', 'a', 'A');
-		aut.connect('B', 'a', 'A');
-		System.out.println(aut);
-		System.out.println(aut.formatAnswer("e"));
-	}
 	
 	public NFA(char[] alphabet) throws IllegalArgumentException {
 		super(alphabet);
@@ -56,7 +44,6 @@ public class NFA extends FiniteAutomaton {
 				return false;
 			
 			for(Node state : currentNodes) {
-				System.out.println("Reading node " + state.name );
 				if(isLast(state.name))
 					oneSuccessful = true;
 			}
