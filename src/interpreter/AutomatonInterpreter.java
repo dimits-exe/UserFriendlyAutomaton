@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.Set;
@@ -23,6 +24,7 @@ public class AutomatonInterpreter {
 	LinkedList<String> record; 
 	
 	private boolean isClosed = false;
+	private Set<File> importNames = new HashSet<File>(); //prevents recursive imports
 	private Preprocessor processor;
 	private PrintStream out, err;
 	
@@ -65,6 +67,11 @@ public class AutomatonInterpreter {
 		return Command.reservedWords;
 	}
 	
+	static String[] splitCommands(String commands) {
+		commands = commands.replace("\n", "").replace("\t", "");
+		return commands.split(Character.toString(Command.COMMAND_DELIMETER)); //boo hoo I can't make a regex out of a char boo hoo
+	}
+	
 //member methods
 		
 	/**
@@ -103,6 +110,7 @@ public class AutomatonInterpreter {
 		g = null;
 		record = null; 
 		processor = null;
+		importNames = null;
 		
 		isClosed = true;
 	}
@@ -113,6 +121,7 @@ public class AutomatonInterpreter {
 	public void reset() {
 		g = null;
 		record = new LinkedList<String>(); 
+		//keep imported files in memory
 	}
 	
 	/**
@@ -127,7 +136,6 @@ public class AutomatonInterpreter {
 	 */
 	public void setErrStream(PrintStream err) {this.err = err;}
 
-	
 	/**
 	 * Executes a command on the automaton. Sends any errors in the standard error stream.
 	 * @param s containing the command-keyword and followed by any parameters depending on the command.
@@ -158,7 +166,7 @@ public class AutomatonInterpreter {
 				successful = false;
 			}
 			catch(RuntimeException e) {
-				this.err.println(InterpreterException.ERROR_MESSAGE + e.getMessage());
+				this.err.println(InterpreterException.ERROR_MESSAGE + e.getMessage()); 
 				successful = false;
 			}
 		}
@@ -204,17 +212,16 @@ public class AutomatonInterpreter {
 		return true;
 	}
 	
-	static String[] splitCommands(String commands) {
-		commands = commands.replace("\n", "").replace("\t", "");
-		return commands.split(Character.toString(Command.COMMAND_DELIMETER)); //boo hoo I can't make a regex out of a char boo hoo
-	}
-	
 	/**
 	 * Initializes the automaton by executing all commands within a file
 	 * @param file the file containing the code
 	 */
 	void importFromFileSystem(File file) throws InterpreterException {
-
+		if(importNames.contains(file))
+			return;
+		
+		importNames.add(file);
+		
 		try (Scanner in = new Scanner(file)){
 			reset(); //wipe previous data, keep data from import
 			
@@ -244,7 +251,7 @@ public class AutomatonInterpreter {
 			
 			for(String s : record) {			//write all commands in the file
 				Command com = Command.commands.get(s.split(" ")[0].toLowerCase().strip());
-				if(com.isExportable) { 		//if writable command
+				if(com.isExportable) { 			//if writable command
 					out.write(s);
 					out.newLine(); 				//OS independent
 				}

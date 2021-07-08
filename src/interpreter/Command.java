@@ -18,7 +18,7 @@ enum Command {
 		ADD ("add <node_name>,<node_name>,...\n"+
 				"Creates new nodes with the selected names (in uppercase) and adds them to the automaton",true,true){
 			@Override
-			String execute(AutomatonInterpreter dr, String args) {
+			protected String executeCommand(AutomatonInterpreter dr, String args) {
 				StringBuffer sb = new StringBuffer("Created node(s) ");
 				for(char c : parseNames(args)) {
 					// if all names accepted
@@ -35,7 +35,7 @@ enum Command {
 		EXECUTE( "Returns a nice formatted string informing the user whether or not the supplied word is accepted by the automaton.\n"+
 				"A word is accepted if the node on which the last character of the word is considered an 'accept-state' (see 'help make_accept')",true,true) {
 			@Override
-			String execute(AutomatonInterpreter dr, String word) {
+			protected String executeCommand(AutomatonInterpreter dr, String word) {
 				return dr.g.formatAnswer(word);
 			}
 
@@ -45,7 +45,7 @@ enum Command {
 				"show all\n"+
 				"Shows information about each of the provided / all of the nodes.",false,true){
 			@Override
-			String execute(AutomatonInterpreter dr, String tokens) {
+			protected String executeCommand(AutomatonInterpreter dr, String tokens) {
 				if(tokens.strip().equals("all"))
 					return dr.g.toString();
 				else {
@@ -65,7 +65,7 @@ enum Command {
 				"For example if alphabet = 'a','b', typing 'connect A to C,D' means  A--(a)--> C, A--(b)-->D.",true,true) {
 			
 			@Override
-			String execute(AutomatonInterpreter dr, String args) {
+			protected String executeCommand(AutomatonInterpreter dr, String args) {
 				String delimiter = null;
 				if(args.contains("to")) delimiter = "to";
 				else if(args.contains("->")) delimiter = "->";
@@ -99,7 +99,7 @@ enum Command {
 				"Turns all the provided nodes into accept-state (nodes that when read last, define that the computation is successful).",true,true) {
 			
 			@Override
-			String execute(AutomatonInterpreter dr, String args) {
+			protected String executeCommand(AutomatonInterpreter dr, String args) {
 				char[] c_ls = parseNames(args);
 				StringBuffer sb = new StringBuffer();
 				
@@ -121,7 +121,7 @@ enum Command {
 		HELP("help <command_name>\nDisplays a basic description of the given command.",false,false) {
 			
 			@Override
-			String execute(AutomatonInterpreter dr,String args) {
+			protected String executeCommand(AutomatonInterpreter dr,String args) {
 				Command com = commands.get(args);
 				if(com == null)
 					return "Invalid command; " + COMMAND_HELP_LIST;
@@ -135,7 +135,7 @@ enum Command {
 				"Creates a new automaton of type T with the alphabet {a,b,c,...}. This needs to be the FIRST command in order to run the other commands",true,false){
 
 			@Override
-			String execute(AutomatonInterpreter dr, String tokens) throws RuntimeException {
+			protected String executeCommand(AutomatonInterpreter dr, String tokens) throws RuntimeException {
 	
 				int indexOfDelimeter = tokens.indexOf(' ');
 				if(indexOfDelimeter == -1)
@@ -166,7 +166,7 @@ enum Command {
 				"Writes all the successfully executed commands to an external file which can be loaded later to replicate the automaton",false,false){
 
 			@Override
-			String execute(AutomatonInterpreter dr, String tokens) throws RuntimeException {
+			protected String executeCommand(AutomatonInterpreter dr, String tokens) throws RuntimeException {
 				if(tokens.strip().equals(""))
 					throw new SyntaxException("No file name given.");
 				
@@ -181,11 +181,14 @@ enum Command {
 						"Opens the file with the provided name and executes its commands one by one. File must be in the same directory as the program.",false,false){
 
 			@Override
-			String execute(AutomatonInterpreter dr, String fileName) throws RuntimeException {
+			protected String executeCommand(AutomatonInterpreter dr, String fileName) throws RuntimeException {
+				
 				if(fileName.strip().equals(""))
 					throw new SyntaxException("No file name given.");
 				
+				
 				dr.importFromFileSystem(Paths.get(fileName).toFile());
+				
 				return "File execution successful";
 			}
 			
@@ -193,7 +196,7 @@ enum Command {
 		
 		EXIT("The final command for the interpreter. No more commands will be accepted after this call and the program should exit.",false,false){
 			@Override
-			String execute(AutomatonInterpreter dr, String tokens) throws RuntimeException {
+			protected String executeCommand(AutomatonInterpreter dr, String tokens) throws RuntimeException {
 				dr.close();
 				return "Closing interpeter...";
 			}
@@ -222,8 +225,17 @@ enum Command {
 		 * @return a confirmation message
 		 * @throws RuntimeException any error that might be caused by faulty parameters or thrown by the automaton itself
 		 */
-		abstract String execute(AutomatonInterpreter dr, String tokens) throws RuntimeException;
+		protected abstract String executeCommand(AutomatonInterpreter dr, String tokens) throws RuntimeException;
 		
+		final String execute(AutomatonInterpreter dr, String tokens) {
+			String output;
+			try {
+				output = executeCommand(dr,tokens);
+			} catch(ArrayIndexOutOfBoundsException e) {
+				throw new SyntaxException("Too few parameters for command call; Use the 'help' command for a valid definition.");
+			}
+			return output;
+		}
 		
 		private Command(String description, boolean isExportable, boolean isMutable){
 			this.description = description;
@@ -239,24 +251,21 @@ enum Command {
 			String[] tokens = args.replace(" ","").split(",");
 			char[] names = new char[tokens.length];
 			
-			try { //fill array with individual characters
-				for(int i=0; i<tokens.length; i++) { 
-					
-					String error = null;
-					if(tokens[i].length() > 1)
-						error = " node names must be one character long";
-					else if (tokens[i].charAt(0) == '\u0000')
-						error = " node name cannot be the null character";
-					else if (tokens[i].charAt(0) == '?')
-						error = " node name cannot be the '?' character";
-					
-					if(error != null)
-						throw new InterpreterException(String.format("Invalid node name: %s\n%s",tokens[i],error));
-					else
-						names[i] = tokens[i].charAt(0); //insert i-th character
-				}
-			} catch(StringIndexOutOfBoundsException e) {
-				throw new SyntaxException("Too few parameters for command call; Use the 'help' command for a valid definition.");
+			 //fill array with individual characters
+			for(int i=0; i<tokens.length; i++) { 
+				
+				String error = null;
+				if(tokens[i].length() > 1)
+					error = " node names must be one character long";
+				else if (tokens[i].charAt(0) == '\u0000')
+					error = " node name cannot be the null character";
+				else if (tokens[i].charAt(0) == '?')
+					error = " node name cannot be the '?' character";
+				
+				if(error != null)
+					throw new InterpreterException(String.format("Invalid node name: %s\n%s",tokens[i],error));
+				else
+					names[i] = tokens[i].charAt(0); //insert i-th character
 			}
 			 
 			return names;
