@@ -117,19 +117,16 @@ class CustomStyledDocument extends DefaultStyledDocument {
     	if (cmd.changeColor(color)) {
     		if(isWorking)
     			colorsChanged = true;
-			else
-				try {
-					handleTextChanged();
-				} catch (BadLocationException e) {e.printStackTrace();}
+    		else
+    			handleTextChanged();
     	}
     }
     
 
     /**
      * Runs the document updates parallel to the EDT. Large documents could be too demanding for a time-sensitive operation like this.
-     * @throws BadLocationException 
      */
-    public void handleTextChanged() throws BadLocationException {
+    public void handleTextChanged() {
     	if(!isWorking) {
     		synchronized (isWorking) {
 				isWorking = true;
