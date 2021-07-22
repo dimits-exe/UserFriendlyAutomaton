@@ -1,8 +1,6 @@
 package editor;
 
 import java.awt.Color;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,64 +19,90 @@ import interpreter.Preprocessor;
  * Effectively implements syntax highlighting for the TextPane that hosts it
  * 
  * @author dimits
+ * @author alexm
  */
 class CustomStyledDocument extends DefaultStyledDocument {
 	
+    /**
+     * Encapsulates information about different types of strings that can appear in
+     * the Document. Each type is identified by a regular expression (its pattern)
+     * and is styled differently.
+     */
 	public static enum TextType{
-		INTERPRETER(0),
-		PREPROCESSOR(1),
-		COMMENTS(2),
-		RESERVED(3);
-		
-		public final int index;
-		
-		TextType(int i) {
-			index = i;
-		}
-	}
+        /** Type for Automaton commands */
+        INTERPRETER(0, buildPattern(AutomatonInterpreter.getCommands()), boldText),
 
+        /** Type for Preprocessor commands */
+        PREPROCESSOR(1, buildPattern(Preprocessor.getCommands()), defaultAttributeSet),
+
+        /** Type for Comments */
+        COMMENTS(2, Pattern.compile(Preprocessor.COMMENT_REGEX), italicText),
+
+        /** Type for Reserved words */
+        RESERVED(3, buildPattern(AutomatonInterpreter.getReservedWords()), boldText);
+
+        /** ??? */
+		public final int index;
+
+
+        private final Pattern pattern;
+        private AttributeSet  attributes;
+
+        /**
+         * Constructs the TextType using an index (for spaghetti reasons), a pattern to
+         * identify the strings of this TextType and an AttributeSet to define the style
+         * of the strings.
+         *
+         * @param i          the index of ???
+         * @param pattern    the pattern of the strings
+         * @param attributes the style of the strings
+         */
+        TextType(int i, Pattern pattern, AttributeSet attributes) {
+			index = i;
+
+            this.pattern = pattern;
+            this.attributes = attributes;
+		}
+
+        /**
+         * Changes the color associated with this TextType.
+         *
+         * @param newColor the new color
+         *
+         * @return {@code true} if the color was changed, {@code false} if it remained
+         *         the same
+         */
+        private boolean changeColor(Color newColor) {
+            final boolean changed = attributes.getAttribute(StyleConstants.Foreground) != newColor;
+
+            if (changed)
+                attributes = styleContext.addAttribute(attributes, StyleConstants.Foreground,
+                        newColor);
+
+            return changed;
+        }
+	}
+	
 	private static final long serialVersionUID = -1507512583034707644L;
 
-	private static final Pattern[] patterns = new Pattern[4];
     private final static StyleContext styleContext = StyleContext.getDefaultStyleContext();
-    private final static AttributeSet[] constants = new AttributeSet[patterns.length];
-    
-	private final AttributeSet[] colors = new AttributeSet[patterns.length];
-    private final AttributeSet defaultAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.BLACK);
+    private final static AttributeSet defaultAttributeSet, boldText, italicText;
+	
+    static {
+        defaultAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(),
+                StyleConstants.Foreground, Color.BLACK);
+        boldText = styleContext.addAttribute(defaultAttributeSet, StyleConstants.Bold, true);
+        italicText = styleContext.addAttribute(defaultAttributeSet, StyleConstants.Italic, true);
+    }
+	
     private Boolean isWorking = false; //no that's not a typo, it's a mutex
     private boolean colorsChanged = false;
-    
-    static {
-    	Set<String> interpreter_commands = new HashSet<String>();
-    	Set<String> preprocessor_commands = new HashSet<String>();
-    	Set<String> reserved_words = new HashSet<String>();
-    	
-    	for (String com : AutomatonInterpreter.getCommands())
-    		interpreter_commands.add(com);
-    	
-    	for (String com : Preprocessor.getCommands())
-    		preprocessor_commands.add(com);
-    	
-    	for (String com : AutomatonInterpreter.getReservedWords())
-    		reserved_words.add(com);
-    	
-    	patterns[TextType.INTERPRETER.index] = buildPattern(interpreter_commands);
-    	patterns[TextType.PREPROCESSOR.index] = buildPattern(preprocessor_commands);
-    	patterns[TextType.COMMENTS.index] = Pattern.compile(Preprocessor.COMMENT_REGEX);
-    	patterns[TextType.RESERVED.index] = buildPattern(reserved_words);
-    	
-    	constants[TextType.INTERPRETER.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Bold, true);
-    	constants[TextType.PREPROCESSOR.index] = styleContext.getEmptySet();
-    	constants[TextType.COMMENTS.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Italic, true);
-    	constants[TextType.RESERVED.index] = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Bold, true);
-    	
-    }
-    
+
     public CustomStyledDocument(Color commandColor, Color preprocessorColor, Color commentColor, Color reservedColor) {
-    	colors[TextType.INTERPRETER.index] 	= styleContext.addAttribute(constants[TextType.INTERPRETER.index], 	StyleConstants.Foreground, commandColor); 		//interpreter
-    	colors[TextType.PREPROCESSOR.index] = styleContext.addAttribute(constants[TextType.PREPROCESSOR.index], StyleConstants.Foreground, preprocessorColor);  //preprocessor
-    	colors[TextType.COMMENTS.index] 	= styleContext.addAttribute(constants[TextType.COMMENTS.index],		StyleConstants.Foreground, commentColor);   	//comments
-    	colors[TextType.RESERVED.index] 	= styleContext.addAttribute(constants[TextType.RESERVED.index], 	StyleConstants.Foreground, reservedColor); 		//reserved
+        TextType.INTERPRETER.changeColor(commandColor);
+        TextType.PREPROCESSOR.changeColor(preprocessorColor);
+        TextType.COMMENTS.changeColor(commentColor);
+        TextType.RESERVED.changeColor(reservedColor);
     }
     
     
@@ -95,24 +119,19 @@ class CustomStyledDocument extends DefaultStyledDocument {
     }
     
     public void changeColors(TextType cmd, Color color) {  
-    	if(colors[cmd.index] != color) {
-    		colors[cmd.index] = styleContext.addAttribute(constants[cmd.index], StyleConstants.Foreground, color);
-    		
+    	if (cmd.changeColor(color)) {
     		if(isWorking)
     			colorsChanged = true;
-			else
-				try {
-					handleTextChanged();
-				} catch (BadLocationException e) {e.printStackTrace();}
+    		else
+    			handleTextChanged();
     	}
     }
     
 
     /**
      * Runs the document updates parallel to the EDT. Large documents could be too demanding for a time-sensitive operation like this.
-     * @throws BadLocationException 
      */
-    public void handleTextChanged() throws BadLocationException {
+    public void handleTextChanged() {
     	if(!isWorking) {
     		synchronized (isWorking) {
 				isWorking = true;
@@ -132,7 +151,7 @@ class CustomStyledDocument extends DefaultStyledDocument {
      *
      * @return a pattern describing either one of all the words
      */
-    private static Pattern buildPattern(Set<String> words) {
+    private static Pattern buildPattern(String[] words) {
     	// construct the regex: (?<!\w)foo(?!\w)|(?<!\w)bar(?!\w)|...
     	// to match any of the keywords foo, bar separated by anything
     	// apart from a \w, with which keywords start and end
@@ -160,8 +179,8 @@ class CustomStyledDocument extends DefaultStyledDocument {
         this.setCharacterAttributes(0, this.getLength(), defaultAttributeSet, true);
 
         // Look for tokens and highlight them
-        for(int i=0; i<4; i++) {
-        	 Matcher matcher = patterns[i].matcher(this.getText(0, this.getLength()));
+        for (TextType type : TextType.values()) {
+        	 Matcher matcher = type.pattern.matcher(this.getText(0, this.getLength()));
         	 
         	 if(colorsChanged) { //run again if the colors changed mid-update
         		 colorsChanged = false;
@@ -170,7 +189,7 @@ class CustomStyledDocument extends DefaultStyledDocument {
         	 
              while (matcher.find()) {
                  // Change the color of recognized tokens
-             	this.setCharacterAttributes(matcher.start(), matcher.end() - matcher.start(), colors[i], false);
+             	this.setCharacterAttributes(matcher.start(), matcher.end() - matcher.start(), type.attributes, false);
              }
         }
     }
