@@ -53,7 +53,7 @@ class CustomStyledDocument extends DefaultStyledDocument {
          * identify the strings of this TextType and an AttributeSet to define the style
          * of the strings.
          *
-         * @param index      the index of ???
+         * @param i          the index of ???
          * @param pattern    the pattern of the strings
          * @param attributes the style of the strings
          */
@@ -86,10 +86,15 @@ class CustomStyledDocument extends DefaultStyledDocument {
 	private static final long serialVersionUID = -1507512583034707644L;
 
     private final static StyleContext styleContext = StyleContext.getDefaultStyleContext();
-    private final static AttributeSet defaultAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.BLACK);
-    private final static AttributeSet boldText = styleContext.addAttribute(defaultAttributeSet, StyleConstants.Bold, true);
-    private final static AttributeSet italicText = styleContext.addAttribute(defaultAttributeSet, StyleConstants.Italic, true);
-
+    private final static AttributeSet defaultAttributeSet, boldText, italicText;
+	
+    static {
+        defaultAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(),
+                StyleConstants.Foreground, Color.BLACK);
+        boldText = styleContext.addAttribute(defaultAttributeSet, StyleConstants.Bold, true);
+        italicText = styleContext.addAttribute(defaultAttributeSet, StyleConstants.Italic, true);
+    }
+	
     private Boolean isWorking = false; //no that's not a typo, it's a mutex
     private boolean colorsChanged = false;
 
