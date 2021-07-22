@@ -25,7 +25,6 @@ public class AutomatonInterpreter {
 	
 	private boolean isClosed = false;
 	private Set<File> importNames = new HashSet<File>(); //prevents recursive imports
-	private Preprocessor processor;
 	private PrintStream out, err;
 	
 //static methods
@@ -90,7 +89,6 @@ public class AutomatonInterpreter {
 		setOutStream(out);
 		setErrStream(err);
 
-		processor = new Preprocessor();
 		this.out.println("Type 'exit' to terminate the interpreter, or type 'help' for a list of commands.");
 		this.out.println("Note: All commands are NOT case-sensitive.");
 	}
@@ -108,8 +106,7 @@ public class AutomatonInterpreter {
 		out = null;
 		err = null;
 		g = null;
-		record = null; 
-		processor = null;
+		record = null;
 		importNames = null;
 		
 		isClosed = true;
@@ -191,8 +188,9 @@ public class AutomatonInterpreter {
 		int line = 1;
 		boolean successful = true;
 		String actualCode;
+		
 		try {
-			actualCode = processor.process(commands);
+			actualCode = Preprocessor.process(commands);
 		} catch(SyntaxException se) {
 			err.println(se.getMessage());
 			return false;
