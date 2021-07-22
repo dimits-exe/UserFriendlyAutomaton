@@ -13,6 +13,9 @@ import java.util.HashSet;
  */
 public class Preprocessor {
 
+	/* Don't let anyone instantiate this class */
+	private Preprocessor() {}
+
 	/** Enum-strategy to handle different type of Preprocessor commands */
 	private enum Token {
 
@@ -202,7 +205,6 @@ public class Preprocessor {
 			line = line.strip();
 			final String command = line.split(" ")[0].toLowerCase();
 			Token.getByIdentifier(command).handleLine(line);
-
 		}
 
 		if (ignore)
