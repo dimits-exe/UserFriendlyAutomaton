@@ -215,7 +215,7 @@ public final class AutomatonEditor extends JFrame {
 		if(data.lastFile != null && data.lastFile.exists()) {
 			String lastFileText = readFile(data.lastFile);
 			if(lastFileText != null) {
-				codeArea.setText("\n" + lastFileText);
+				codeArea.setText(lastFileText);
 				lastSavedStringCode = codeArea.getText().hashCode(); 
 			}	
 		}else

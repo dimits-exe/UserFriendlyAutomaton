@@ -122,24 +122,38 @@ class CustomStyledDocument extends DefaultStyledDocument {
     }
 
     /**
-     * Build the regular expression that looks for the whole word of each word that you wish to find. 
-     * The "\\W" is the beginning or end of a word boundary.  The "|" is a regex "or" operator.
-     * @return a pattern describing either of all the words
+     * Build the regular expression that looks for the whole word of each word that
+     * you wish to find. The regex will match any of the {@code words} provided that
+     * are not immediately preceded or followed by another {@code \w} character.
+     * Further details and limitations about the regex are described in the source
+     * code.
+     *
+     * @param words the set of words for which a Pattern will be created.
+     *
+     * @return a pattern describing either one of all the words
      */
     private static Pattern buildPattern(Set<String> words) {
-        StringBuilder sb = new StringBuilder();
-        for (String token : words) {
-            sb.append("\\W"); // Start of word boundary
-            sb.append(token);
-            sb.append("\\W|"); // End of word boundary and an or for the next word
-        }
-        
-        if (sb.length() > 0) 
-            sb.deleteCharAt(sb.length() - 1); // Remove the trailing "|"
+    	// construct the regex: (?<!\w)foo(?!\w)|(?<!\w)bar(?!\w)|...
+    	// to match any of the keywords foo, bar separated by anything
+    	// apart from a \w, with which keywords start and end
 
-        return Pattern.compile(sb.toString());
+    	// note that this won't work for keywords like "->" for which
+    	// a \w character may be allowed ("->a" is correctly interpreted
+    	// as "-> a" but the "->" isn't matched)
+    	StringBuilder sb = new StringBuilder();
+
+    	for (String token : words) {
+    	    sb.append("(?<!\\w)"); // ensure not preceded by a word character
+    	    sb.append(token); // match the word
+    	    sb.append("(?!\\w)"); // ensure not followed by a word character
+    	    sb.append("|"); // provide alternative for the next word
+    	}
+
+    	if (sb.length() > 0)
+    	    sb.deleteCharAt(sb.length() - 1); // Remove the trailing "|"
+
+    	return Pattern.compile(sb.toString());
     }
-
 
     private void updateTextStyles() throws BadLocationException {
         // Clear existing styles
