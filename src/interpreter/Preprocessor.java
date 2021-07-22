@@ -202,6 +202,7 @@ public class Preprocessor {
 			line = line.strip();
 			final String command = line.split(" ")[0].toLowerCase();
 			Token.getByIdentifier(command).handleLine(line);
+
 		}
 
 		if (ignore)
