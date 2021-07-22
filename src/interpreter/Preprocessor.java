@@ -8,8 +8,7 @@ import java.util.HashSet;
  * code's text into interpreter readable commands. Basically an extremely dumb
  * version of the C preprocessor.
  *
- * @author dimits
- * @author alexm
+ * @author dimits, alexm
  */
 public class Preprocessor {
 
@@ -22,27 +21,27 @@ public class Preprocessor {
 		/** Token for a default (non-preprocessor) line */
 		DEFAULT("<default>", "", "Non-preprocessor command") {
 			@Override
-			void handleLine(String line) {
-				if (!ignore) {
+			void handleLine(String line, ToolSet tools) {
+				if (!tools.ignore) {
 
-					//split on ',' ':' keeping the symbols separate
+					//split on ',' ':' keeping the tools.symbols separate
 					final String[] tokens = line.split(" |(?<=,)|(?=,)|(?<=:)|(?=:)");
 
 					for (final String word : tokens) {
 
-						if (isNotSymbol(word))
-							codeBuilder.append(word);
+						if (isNotSymbol(word, tools.namedefs))
+							tools.codeBuilder.append(word);
 						else
-							codeBuilder.append(namedefs.get(word));
+							tools.codeBuilder.append(tools.namedefs.get(word));
 
-						codeBuilder.append(' ');
+						tools.codeBuilder.append(' ');
 					}
 
-					codeBuilder.append(";\n");
+					tools.codeBuilder.append(";\n");
 				}
 			}
 
-			private boolean isNotSymbol(String word) {
+			private boolean isNotSymbol(String word, HashMap<String,String> namedefs) {
 				return word.equals(":") || word.equals(",") || word.isBlank()
 				        || !namedefs.containsKey(word.strip());
 			}
@@ -53,10 +52,10 @@ public class Preprocessor {
 		        "Text surrounded by %s,%s. It is ignored by the Interpreter.",
 		        "/*", "*/") {
 			@Override
-			void handleLine(String line) {
+			void handleLine(String line, ToolSet tools) {
 				// if a line starts with 'Comments' this would get executed
 				// so just call the default line handling.
-				DEFAULT.handleLine(line);
+				DEFAULT.handleLine(line, tools);
 			}
 		},
 
@@ -64,8 +63,8 @@ public class Preprocessor {
 		DEFINE("#namedef", "%s [old string] [replacement string];",
 		        "Replaces all occuresnces of [old string] with [replacement string].") {
 			@Override
-			void handleLine(String line) {
-				if (!ignore) {
+			void handleLine(String line, ToolSet tools) {
+				if (!tools.ignore) {
 					final String[] arguments = line.split(" ");
 
 					Token.checkArgCount(arguments, 3, DEFINE, line);
@@ -74,7 +73,7 @@ public class Preprocessor {
 						throw new SyntaxException(
 						        errorMessage("Commands cannot be overwritten.", line));
 
-					namedefs.put(arguments[1], arguments[2]);
+					tools.namedefs.put(arguments[1], arguments[2]);
 				}
 			}
 		},
@@ -83,13 +82,13 @@ public class Preprocessor {
 		IF_DEFINED("#ifdef", "%s [Symbol]",
 		        "Starts a conditional block. If [Symbol] has NOT been defined, the commands in the block are ignored.") {
 			@Override
-			void handleLine(String line) {
-				if (!ignore) {
+			void handleLine(String line, ToolSet tools) {
+				if (!tools.ignore) {
 					final String[] arguments = line.split(" ");
 
 					Token.checkArgCount(arguments, 2, this, line);
 
-					ignore = !symbols.contains(arguments[1]);
+					tools.ignore = !tools.symbols.contains(arguments[1]);
 				}
 			}
 		},
@@ -98,13 +97,13 @@ public class Preprocessor {
 		IF_NOT_DEFINED("#ifndef", "%s [Symbol]",
 		        "Starts a conditional block. If [Symbol] HAS been defined, the commands in the block are ignored.") {
 			@Override
-			void handleLine(String line) {
-				if (!ignore) {
+			void handleLine(String line, ToolSet tools) {
+				if (!tools.ignore) {
 					final String[] arguments = line.split(" ");
 
 					Token.checkArgCount(arguments, 2, this, line);
 
-					ignore = symbols.contains(arguments[1]);
+					tools.ignore = tools.symbols.contains(arguments[1]);
 				}
 			}
 		},
@@ -112,8 +111,8 @@ public class Preprocessor {
 		/** Token for #endif preprocessor command */
 		END_IF("#endif", "%s", "Ends the conditional block.") {
 			@Override
-			void handleLine(String line) {
-				ignore = false;
+			void handleLine(String line, ToolSet tools) {
+				tools.ignore = false;
 			}
 		},
 
@@ -122,13 +121,13 @@ public class Preprocessor {
 		        "Defines a new symbol that is used to form conditional blocks. See %s and %s",
 		        IF_DEFINED.identifier, IF_NOT_DEFINED.identifier) {
 			@Override
-			void handleLine(String line) {
-				if (!ignore) {
+			void handleLine(String line, ToolSet tools) {
+				if (!tools.ignore) {
 					final String[] arguments = line.split(" ");
 
 					Token.checkArgCount(arguments, 2, this, line);
 
-					symbols.add(arguments[1]);
+					tools.symbols.add(arguments[1]);
 				}
 			}
 		};
@@ -156,7 +155,7 @@ public class Preprocessor {
 		 *
 		 * @param line the line
 		 */
-		abstract void handleLine(String line);
+		abstract void handleLine(String line, ToolSet tools);
 
 		@Override
 		public String toString() {
@@ -181,11 +180,6 @@ public class Preprocessor {
 	/** The regex defining a comment as recognized by the preprocessor */
 	public static final String COMMENT_REGEX = "/\\*(.|\\s)*?\\*/";
 
-	private static final HashMap<String, String> namedefs    = new HashMap<>();
-	private static final HashSet<String>         symbols     = new HashSet<>();
-	private static final StringBuilder           codeBuilder = new StringBuilder();
-	private static boolean                       ignore      = false;
-
 	/**
 	 * Returns a string of the text formatted into interpreter-readable code. ; *
 	 *
@@ -197,22 +191,23 @@ public class Preprocessor {
 	 *                         detected
 	 */
 	static String process(String code) throws SyntaxException {
-		reset();
+		ToolSet tools = new ToolSet();
+
 		final String   bareCode = code.replaceAll(COMMENT_REGEX, "").replaceAll(";+", ";");
 		final String[] lines    = AutomatonInterpreter.splitCommands(bareCode);
 
 		for (String line : lines) {
 			line = line.strip();
 			final String command = line.split(" ")[0].toLowerCase();
-			Token.getByIdentifier(command).handleLine(line);
+			Token.getByIdentifier(command).handleLine(line, tools);
 		}
 
-		if (ignore)
+		if (tools.ignore)
 			throw new SyntaxException(
 			        String.format("Expected %s before end of file as a conditional block is open.",
 			                Token.END_IF.identifier));
 
-		return codeBuilder.toString();
+		return tools.codeBuilder.toString();
 	}
 
 	/**
@@ -249,13 +244,18 @@ public class Preprocessor {
 		        "Cannot get description: " + commandName + " is not a valid command");
 	}
 
-	private static void reset() {
-		namedefs.clear();
-		codeBuilder.setLength(0);
-		symbols.clear();
-	}
-
 	private static String errorMessage(String message, String command) {
 		return String.format("%s\n\t at command %s", message, command);
+	}
+	
+	/**
+	 * Creates a set of all data the function {@link Preprocessor#process(String)} saves during execution.
+	 * Used to pass said data around other functions until they are extracted by the {@link Preprocessor#process(String)} method.
+	 */
+	private static class ToolSet {
+		final HashMap<String, String> namedefs    = new HashMap<>();
+		final HashSet<String>         symbols     = new HashSet<>();
+		final StringBuilder           codeBuilder = new StringBuilder();
+		boolean                       ignore      = false;
 	}
 }
