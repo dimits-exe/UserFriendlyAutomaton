@@ -173,7 +173,7 @@ public class Preprocessor {
 		private static void checkArgCount(String[] args, int count, Token token, String line) {
 			if (args.length != count)
 				throw new SyntaxException(
-				        errorMessage("Invalid number of arguments in " + token, line));
+				        errorMessage("Invalid number of arguments in " + token.identifier, line));
 		}
 	}
 
