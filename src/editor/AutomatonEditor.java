@@ -82,7 +82,6 @@ public final class AutomatonEditor extends JFrame {
 	
 	private AutomatonInterpreter interp;
 	private CustomStyledDocument textDocument;
-	private final BackgroundRuntime backgroundRuntime;
 	private int lastSavedStringCode; 				//to check if unsaved text is present in the codeArea
 	
 	public static void main(String[] args) {
