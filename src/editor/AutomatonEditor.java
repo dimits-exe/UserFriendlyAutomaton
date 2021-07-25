@@ -156,8 +156,12 @@ public final class AutomatonEditor extends JFrame {
 		codeArea.setFont(new Font(data.textFont, data.textStyle, data.textSize));
 		codeArea.setBorder(codeBorder);
 		new CompoundUndoManager(codeArea);
-		backgroundRuntime = new BackgroundRuntime(AutomatonEditor.this, singleLineCodeArea, codeArea.getDocument());
-		backgroundRuntime.start();
+		codeArea.getStyledDocument().addUndoableEditListener(new UndoableEditListener() {
+			@Override
+			public void undoableEditHappened(UndoableEditEvent e) {
+				new BackgroundRuntime(AutomatonEditor.this, singleLineCodeArea, codeArea.getDocument());
+			}			
+		});
 				
 		JScrollPane codeAreaScroll = new JScrollPane(codeArea, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
 				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
