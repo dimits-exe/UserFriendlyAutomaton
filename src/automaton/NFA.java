@@ -6,6 +6,12 @@ import java.util.Map;
 
 public class NFA extends FiniteAutomaton {
 	
+	/*
+	 * This wasn't planned to be included originally, so a lot of code here could be
+	 * rewritten in a better way. Still, it's functional and relatively simple, so 
+	 * a rewrite is unnecessary.
+	 */
+	
 	public NFA(char[] alphabet) throws IllegalArgumentException {
 		super(alphabet);
 	}
@@ -16,9 +22,10 @@ public class NFA extends FiniteAutomaton {
 	}
 	
 	@Override
-	public void connect(char nodeName, char letter, char targetName) {
+	public void connect(char nodeName, char letter, char targetName) throws InvalidNodeException, InvalidTransitionException {
 		if(letter != EMPTY && findInAlphabet(letter) == -1)
-			throw new IllegalArgumentException("The letter " + letter + " does not belong in the alphabet");
+			throw new InvalidTransitionException("The letter " + letter + " does not belong in the alphabet");
+		
 		((NFANode) node(nodeName)).connect(letter, (NFANode) node(targetName));
 	}
 	
@@ -26,12 +33,12 @@ public class NFA extends FiniteAutomaton {
 	 * Takes any string and runs it through the automaton, returns whether or not it's accepted.
 	 * @param word
 	 * @return true if accepted, false otherwise
-	 * @throws IllegalStateException if there are no nodes in the automaton.
+	 * @throws InvalidAutomatonException if there are no nodes in the automaton.
 	 */
 	@Override
-	public boolean isAccepted(String word) throws IllegalStateException {
+	public boolean isAccepted(String word) throws InvalidAutomatonException {
 		if(size() == 0)
-			throw new IllegalStateException("This automaton is empty");
+			throw new InvalidAutomatonException("This automaton is empty");
 		
 		boolean oneSuccessful = false; //at least one state was accepted
 		NFANode n = (NFANode) first;
