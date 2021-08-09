@@ -4,6 +4,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+/**
+ * A class representing a theoretical Non-Deterministic Finite Automaton, an automaton that doesn't have restrictions
+ * on how its nodes are connected, and that supports e (empty) transitions.
+ * 
+ * Runs on potentially exponential time.
+ * 
+ * @author dimits
+ *
+ */
 public class NFA extends FiniteAutomaton {
 	
 	/*
