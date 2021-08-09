@@ -55,18 +55,28 @@ class BackgroundRuntime {
 			}
 		});
 		this.doc = doc;
-		doc.addUndoableEditListener(new UndoableEditListener() { //reset the counter if any change is detected (aka the user isn't done typing)
-			@Override
-			public void undoableEditHappened(UndoableEditEvent e) {
-				timer.restart();
-			}	
-		});
 
 		this.previousHashCode = getText().hashCode();
 		this.output = output;
 		this.autedit = autedit;
 		this.threadIsWorking = false;
-		timer.start();
+	}
+
+	/**
+	 * Starts the BackgroundRuntime. Calling this method more than once has no
+	 * effect.
+	 */
+	public void start() {
+		// ensure additional method calls don't have any effect
+		if (!timer.isRunning()) {
+			doc.addUndoableEditListener(new UndoableEditListener() { //reset the counter if any change is detected (aka the user isn't done typing)
+				@Override
+				public void undoableEditHappened(UndoableEditEvent e) {
+					timer.restart();
+				}	
+			});
+			timer.start();
+		}
 	}
 	
 	/**
@@ -105,49 +115,40 @@ class BackgroundRuntime {
 	 */
 	@SuppressWarnings("rawtypes")
 	private class InterpreterWorker extends SwingWorker{
-		
-		private void success() {
-			autedit.changeBorder(true);
-			output.setText(""); //clear area
-			output.setVisible(false);
-		}
-		
-		private void failure() {
-			autedit.changeBorder(false);
-			output.setVisible(true);
-		}
-		
+
 		@Override
 		protected Object doInBackground() throws Exception {
 			synchronized(threadIsWorking) {
 				threadIsWorking = true;
 			}
-			
+
 			if(getText().isBlank()) {
-				success();
+				result(true);
 				return null;
 			}
-				
-			
+
+			// clear area
+			output.setText("");
+
 			AutomatonInterpreter interp = new AutomatonInterpreter(new PrintStream(new NullOutputStream()),
 					new PrintStream(new ConsoleOutputStream(Color.RED, null, output.getDocument(), output, true),true));
-			
-			if(interp.executeBatch(doc.getText(0, doc.getLength()))) { 
-				success();
-			} else {
-				failure();
-			}
-			
+
+			result(interp.executeBatch(doc.getText(0, doc.getLength())));
+
 			return null;
 		}
-		
-		@Override 
+
+		@Override
 		protected void done() {
 			synchronized(threadIsWorking) {
 				threadIsWorking = false;
 			}
 		}
-		
+
+		private void result(boolean success) {
+			autedit.changeBorder(success);
+			output.setVisible(!success);
+		}
 	}
 	
 	private class NullOutputStream extends OutputStream {

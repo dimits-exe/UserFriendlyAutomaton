@@ -82,6 +82,7 @@ public final class AutomatonEditor extends JFrame {
 	
 	private AutomatonInterpreter interp;
 	private CustomStyledDocument textDocument;
+	private final BackgroundRuntime backgroundRuntime;
 	private int lastSavedStringCode; 				//to check if unsaved text is present in the codeArea
 	
 	public static void main(String[] args) {
@@ -155,12 +156,10 @@ public final class AutomatonEditor extends JFrame {
 		codeArea.setFont(new Font(data.textFont, data.textStyle, data.textSize));
 		codeArea.setBorder(codeBorder);
 		new CompoundUndoManager(codeArea);
-		codeArea.getStyledDocument().addUndoableEditListener(new UndoableEditListener() {
-			@Override
-			public void undoableEditHappened(UndoableEditEvent e) {
-				new BackgroundRuntime(AutomatonEditor.this, singleLineCodeArea, codeArea.getDocument());
-			}			
-		});
+
+		backgroundRuntime = new BackgroundRuntime(AutomatonEditor.this, singleLineCodeArea, codeArea.getDocument());
+		backgroundRuntime.start();
+
 				
 		JScrollPane codeAreaScroll = new JScrollPane(codeArea, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
 				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
