@@ -151,11 +151,12 @@ public final class AutomatonEditor extends JFrame {
 		codeBorder = new MutableColorBorder(data.noErrorColor);				
 		codeAreaLabel = new JLabel("Editor Area");
 		
-		textDocument = new CustomStyledDocument(data.syntaxColors[0],data.syntaxColors[1],data.syntaxColors[2],data.syntaxColors[3]);
+		textDocument = new HighlightedStyledDocument(data.syntaxColors[0],data.syntaxColors[1],data.syntaxColors[2],data.syntaxColors[3]);
 		codeArea = new JTextPane(textDocument); 
 		codeArea.setFont(new Font(data.textFont, data.textStyle, data.textSize));
 		codeArea.setBorder(codeBorder);
-		new CompoundUndoManager(codeArea);
+		
+		UndoManagerDecorator.decorate(codeArea);
 
 		backgroundRuntime = new BackgroundRuntime(AutomatonEditor.this, singleLineCodeArea, codeArea.getDocument());
 		backgroundRuntime.start();
