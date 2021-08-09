@@ -28,7 +28,7 @@ import java.util.Scanner;
 import interpreter.AutomatonInterpreter;
 import interpreter.Preprocessor;
 
-import editor.CustomStyledDocument.TextType;
+import editor.HighlightedStyledDocument.TextType;
 
 /**
  * A GUI implementation of an automaton interpreter. Designed to be heavily modifiable and user-friendly.
@@ -81,7 +81,7 @@ public final class AutomatonEditor extends JFrame {
 	private final JButton executeButton;
 	
 	private AutomatonInterpreter interp;
-	private CustomStyledDocument textDocument;
+	private HighlightedStyledDocument textDocument;
 	private final BackgroundRuntime backgroundRuntime;
 	private int lastSavedStringCode; 				//to check if unsaved text is present in the codeArea
 	
@@ -173,13 +173,7 @@ public final class AutomatonEditor extends JFrame {
 		interpreterConsole.setFont(new Font(data.textFont, data.textStyle, data.textSize));
 		
 	//add listeners
-		executeButton.addActionListener(
-			new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					executeCode();
-				}
-		});
+		executeButton.addActionListener(e->{ executeCode();});
 		
 	//add components
 		consolePanel.setPreferredSize(new Dimension(700, 500));
