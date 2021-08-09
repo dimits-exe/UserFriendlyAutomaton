@@ -21,7 +21,7 @@ import interpreter.Preprocessor;
  * @author dimits
  * @author alexm
  */
-class CustomStyledDocument extends DefaultStyledDocument {
+class HighlightedStyledDocument extends DefaultStyledDocument {
 	
     /**
      * Encapsulates information about different types of strings that can appear in
@@ -30,20 +30,16 @@ class CustomStyledDocument extends DefaultStyledDocument {
      */
 	public static enum TextType{
         /** Type for Automaton commands */
-        INTERPRETER(0, buildPattern(AutomatonInterpreter.getCommands()), boldText),
+        INTERPRETER(buildPattern(AutomatonInterpreter.getCommands()), boldText),
 
         /** Type for Preprocessor commands */
-        PREPROCESSOR(1, buildPattern(Preprocessor.getCommands()), defaultAttributeSet),
+        PREPROCESSOR(buildPattern(Preprocessor.getCommands()), defaultAttributeSet),
 
         /** Type for Comments */
-        COMMENTS(2, Pattern.compile(Preprocessor.COMMENT_REGEX), italicText),
+        COMMENTS(Pattern.compile(Preprocessor.COMMENT_REGEX), italicText),
 
         /** Type for Reserved words */
-        RESERVED(3, buildPattern(AutomatonInterpreter.getReservedWords()), boldText);
-
-        /** ??? */
-		public final int index;
-
+        RESERVED(buildPattern(AutomatonInterpreter.getReservedWords()), boldText);
 
         private final Pattern pattern;
         private AttributeSet  attributes;
@@ -53,16 +49,13 @@ class CustomStyledDocument extends DefaultStyledDocument {
          * identify the strings of this TextType and an AttributeSet to define the style
          * of the strings.
          *
-         * @param i          the index of ???
          * @param pattern    the pattern of the strings
          * @param attributes the style of the strings
          */
-        TextType(int i, Pattern pattern, AttributeSet attributes) {
-			index = i;
-
-            this.pattern = pattern;
-            this.attributes = attributes;
-		}
+        TextType(Pattern pattern, AttributeSet attributes) {
+            	this.pattern = pattern;
+            	this.attributes = attributes;
+	}
 
         /**
          * Changes the color associated with this TextType.
@@ -98,7 +91,7 @@ class CustomStyledDocument extends DefaultStyledDocument {
     private Boolean isWorking = false; //no that's not a typo, it's a mutex
     private boolean colorsChanged = false;
 
-    public CustomStyledDocument(Color commandColor, Color preprocessorColor, Color commentColor, Color reservedColor) {
+    public HighlightedStyledDocument(Color commandColor, Color preprocessorColor, Color commentColor, Color reservedColor) {
         TextType.INTERPRETER.changeColor(commandColor);
         TextType.PREPROCESSOR.changeColor(preprocessorColor);
         TextType.COMMENTS.changeColor(commentColor);
@@ -152,13 +145,16 @@ class CustomStyledDocument extends DefaultStyledDocument {
      * @return a pattern describing either one of all the words
      */
     private static Pattern buildPattern(String[] words) {
-    	// construct the regex: (?<!\w)foo(?!\w)|(?<!\w)bar(?!\w)|...
-    	// to match any of the keywords foo, bar separated by anything
-    	// apart from a \w, with which keywords start and end
-
-    	// note that this won't work for keywords like "->" for which
-    	// a \w character may be allowed ("->a" is correctly interpreted
-    	// as "-> a" but the "->" isn't matched)
+    	/* 	
+	*	Construct the regex: (?<!\w)foo(?!\w)|(?<!\w)bar(?!\w)|...
+    	* 	to match any of the keywords foo, bar separated by anything
+    	*	apart from a \w, with which keywords start and end.
+	*
+    	*	Note that this won't work for keywords like "->" for which
+    	*	/a \w character may be allowed ("->a" is correctly interpreted
+    	*	as "-> a" but the "->" isn't matched).
+	*/
+	    
     	StringBuilder sb = new StringBuilder();
 
     	for (String token : words) {
