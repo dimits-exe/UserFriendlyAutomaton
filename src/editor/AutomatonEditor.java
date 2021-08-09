@@ -42,9 +42,9 @@ public final class AutomatonEditor extends JFrame {
 	private static final long serialVersionUID = -5206786832243911971L;
 	
 	private static final String[] fonts = {Font.DIALOG, Font.SANS_SERIF, Font.SERIF, Font.MONOSPACED};
-	private static final int[] styles = {Font.PLAIN, Font.BOLD, Font.ITALIC};
+	private static final Integer[] styles = {Font.PLAIN, Font.BOLD, Font.ITALIC};
 	private static final String[] styleNames = {"None", "Bold", "Italic"};
-	private static final int[] textSizes = {12,14,16,18,20,22,24};
+	private static final Integer[] textSizes = {12,14,16,18,20,22,24};
 	
 	private static final Color[] colors = {Color.RED, Color.BLACK, Color.BLUE, Color.GREEN, Color.MAGENTA, Color.ORANGE, Color.GRAY};
 	private static final String[] colorNames = {"Red", "Black", "Blue", "Green", "Purple", "Orange","Gray"};
@@ -161,7 +161,7 @@ public final class AutomatonEditor extends JFrame {
 				new BackgroundRuntime(AutomatonEditor.this, singleLineCodeArea, codeArea.getDocument());
 			}			
 		});
-		
+				
 		JScrollPane codeAreaScroll = new JScrollPane(codeArea, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
 				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		codeAreaScroll.setRowHeaderView(new TextLineNumber(codeArea));
@@ -449,272 +449,175 @@ public final class AutomatonEditor extends JFrame {
 		
 		SwingUtilities.updateComponentTreeUI(this);
 	}
+
 	private static <T> int findObject(T[] array, T object) {
-		for(int i=0; i < array.length; i++)
-			if(array[i].equals(object))
-				return i;
-		throw new RuntimeException("Value no longer in array");
-	}
-	
-	private static int findObject(int[] array, int value) { //generic methods don't work with primitives :(
-		for(int i=0; i < array.length; i++)
-			if(array[i] == value)
+		for (int i = 0; i < array.length; i++)
+			if (array[i].equals(object))
 				return i;
 		throw new RuntimeException("Value no longer in array");
 	}
 
-//menu stuff
+	private <T> void populateMenu(T[] info, JRadioButtonMenuItem[] menuItems, JMenu menu, ActionListener l) {
+		ButtonGroup bgroup = new ButtonGroup();
+		for (int i = 0; i < info.length; i++) {
+			menuItems[i] = new JRadioButtonMenuItem(info[i].toString());
+			menu.add(menuItems[i]);
+			bgroup.add(menuItems[i]);
+			menuItems[i].addActionListener(l);
+		}
+	}
+
+	//menu stuff
 	private JMenuBar createMenus() {
 		JMenuBar menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
-		
-	//File Menu
+
+		//File Menu
 		JMenuItem newItem = new JMenuItem("New");
 		JMenuItem openItem = new JMenuItem("Open...");
 		JMenuItem saveItem = new JMenuItem("Save");
 		JMenuItem saveAsItem = new JMenuItem("Save As...");
 		JMenuItem clearConsoleItem = new JMenuItem("Clear Console");
 		JMenuItem exitItem = new JMenuItem("Exit");
-		
+
 		fileMenu.add(newItem);
 		fileMenu.add(openItem);
 		fileMenu.add(saveItem);
 		fileMenu.add(saveAsItem);
 		fileMenu.add(clearConsoleItem);
 		fileMenu.add(exitItem);
-		
-		newItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				interp.reset();
-				codeArea.setText("");
-				codeBorder.setColor(data.noErrorColor);
-				singleLineCodeArea.setText("");
-				interpreterConsole.setText("Output will be shown here.");
-			}	
+
+		newItem.addActionListener(e -> {
+			interp.reset();
+			codeArea.setText("");
+			codeBorder.setColor(data.noErrorColor);
+			singleLineCodeArea.setText("");
+			interpreterConsole.setText("Output will be shown here.");
 		});
-		
+
 		//Open As
-		openItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				showOpenDialog();
-			}
-		});
-		
-		saveItem.addActionListener(new ActionListener(){
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				save();
-			}
-		});
-		
+		openItem.addActionListener(e -> showOpenDialog());
+
+		saveItem.addActionListener(e -> save());
+
 		//Save As
-		saveAsItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				showSaveAsDialog();   
-			}
-		});
-		
-		clearConsoleItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				AutomatonEditor.this.interpreterConsole.setText("");
-			}
-		});
-		
+		saveAsItem.addActionListener(e -> showSaveAsDialog());
+
+		clearConsoleItem.addActionListener(e -> interpreterConsole.setText(""));
+
 		//Exit
-		exitItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				exit();
-				System.exit(0); 
-			}
+		exitItem.addActionListener(e -> {
+			exit();
+			System.exit(0);
 		});
-		
-		
-	//Customization Menu
+
+		//Customization Menu
 		JMenu customMenu = new JMenu("Customize");
-		
+
 		//look menu
-		LookAndFeelHandler lookAndFeelHandler = new LookAndFeelHandler();
-		
-		JMenu lookAndFeelMenu = new JMenu("Look And Feel");
-		ButtonGroup lookAndFeelGroup = new ButtonGroup();
-		for(int i =0; i < looks.length; i++) {
+		JMenu lookAndFeelMenu = new JMenu("Look and Feel");
+		ButtonGroup bgroup = new ButtonGroup();
+		for (int i = 0; i < looks.length; i++) {
 			lookAndFeelItems[i] = new JRadioButtonMenuItem(looks[i].getName());
 			lookAndFeelMenu.add(lookAndFeelItems[i]);
-			lookAndFeelGroup.add(lookAndFeelItems[i]);
-			lookAndFeelItems[i].addActionListener(lookAndFeelHandler);
+			bgroup.add(lookAndFeelItems[i]);
+			lookAndFeelItems[i].addActionListener(new LookAndFeelHandler());
 		}
-		
+
 		//error color
-		OutputColorHandler outputColorHandler = new OutputColorHandler();
-		
 		JMenu errorColorMenu = new JMenu("Error Color");
-		ButtonGroup errorButtonGroup = new ButtonGroup();
-		for(int i =0; i < colors.length; i++) {
-			errorColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
-			errorColorMenu.add(errorColorItems[i]);
-			errorButtonGroup.add(errorColorItems[i]);
-			errorColorItems[i].addActionListener(outputColorHandler);
-		}
-		
+		populateMenu(colorNames, errorColorItems, errorColorMenu, new OutputColorHandler());
+
 		//no error color
 		JMenu noErrorColorMenu = new JMenu("Standard Color");
-		ButtonGroup noErrorButtonGroup = new ButtonGroup();
-		for(int i =0; i < colors.length; i++) {
-			noErrorColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
-			noErrorColorMenu.add(noErrorColorItems[i]);
-			noErrorButtonGroup.add(noErrorColorItems[i]);
-			noErrorColorItems[i].addActionListener(outputColorHandler);
-		}
-		
+		populateMenu(colorNames, noErrorColorItems, noErrorColorMenu, new OutputColorHandler());
+
 		//syntaxHighlighting
 		JMenu syntaxMenu = new JMenu("Syntax highlighting");
-		
-			//comments
-			JMenu commentColorMenu = new JMenu("Comments");
-			ButtonGroup commentButtonGroup = new ButtonGroup();
-			for(int i =0; i < colors.length; i++) {
-				commentColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
-				commentColorMenu.add(commentColorItems[i]);
-				commentButtonGroup.add(commentColorItems[i]);
-				commentColorItems[i].addActionListener(new SyntaxColorHandler(commentColorItems, TextType.COMMENTS));
-			}
-			
-			//commands
-			JMenu commandColorMenu = new JMenu("Commands");
-			ButtonGroup commandButtonGroup = new ButtonGroup();
-			for(int i =0; i < colors.length; i++) {
-				commandColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
-				commandColorMenu.add(commandColorItems[i]);
-				commandButtonGroup.add(commandColorItems[i]);
-				commandColorItems[i].addActionListener(new SyntaxColorHandler(commandColorItems, TextType.INTERPRETER));
-			}
-			
-			//preprocessor
-			JMenu preprocessorColorMenu = new JMenu("Preprocessor");
-			ButtonGroup preprocessorButtonGroup = new ButtonGroup();
-			for(int i =0; i < colors.length; i++) {
-				preprocessorColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
-				preprocessorColorMenu.add(preprocessorColorItems[i]);
-				preprocessorButtonGroup.add(preprocessorColorItems[i]);
-				preprocessorColorItems[i].addActionListener(new SyntaxColorHandler(preprocessorColorItems, TextType.PREPROCESSOR));
-			}
-			
-			//reserved words
-			JMenu reservedColorMenu = new JMenu("Reserved words");
-			ButtonGroup reservedButtonGroup = new ButtonGroup();
-			for(int i =0; i < colors.length; i++) {
-				reservedColorItems[i] = new JRadioButtonMenuItem(colorNames[i]);
-				reservedColorMenu.add(reservedColorItems[i]);
-				reservedButtonGroup.add(reservedColorItems[i]);
-				reservedColorItems[i].addActionListener(new SyntaxColorHandler(reservedColorItems, TextType.RESERVED));
-			}
-			
-			syntaxMenu.add(commentColorMenu);
-			syntaxMenu.add(commandColorMenu);
-			syntaxMenu.add(preprocessorColorMenu);
-			syntaxMenu.add(reservedColorMenu);
-		
+
+		//comments
+		JMenu commentColorMenu = new JMenu("Comments");
+		populateMenu(colorNames, commentColorItems, commentColorMenu,
+				new SyntaxColorHandler(commentColorItems, TextType.COMMENTS));
+
+		//commands
+		JMenu commandColorMenu = new JMenu("Commands");
+		populateMenu(colorNames, commandColorItems, commandColorMenu,
+				new SyntaxColorHandler(commandColorItems, TextType.INTERPRETER));
+
+		//preprocessor
+		JMenu preprocessorColorMenu = new JMenu("Preprocessor");
+		populateMenu(colorNames, preprocessorColorItems, preprocessorColorMenu,
+				new SyntaxColorHandler(preprocessorColorItems, TextType.PREPROCESSOR));
+
+		//reserved words
+		JMenu reservedColorMenu = new JMenu("Reserved words");
+		populateMenu(colorNames, reservedColorItems, reservedColorMenu,
+				new SyntaxColorHandler(reservedColorItems, TextType.RESERVED));
+
+		syntaxMenu.add(commentColorMenu);
+		syntaxMenu.add(commandColorMenu);
+		syntaxMenu.add(preprocessorColorMenu);
+		syntaxMenu.add(reservedColorMenu);
+
 		//text options
 		JMenu textMenu = new JMenu("Text Options");
 		TextChoiceHandler textHandler = new TextChoiceHandler();
-			
-			//font menu
-			JMenu fontMenu = new JMenu("Text Font");
-			ButtonGroup fontButtonGroup = new ButtonGroup();
-			for(int i=0; i<fonts.length; i++) {
-				fontItems[i] = new JRadioButtonMenuItem(fonts[i]);
-				fontMenu.add(fontItems[i]);
-				fontButtonGroup.add(fontItems[i]);
-				fontItems[i].addActionListener(textHandler);
-			}
-			
-			//style menu
-			JMenu styleMenu = new JMenu("Text Style");
-			ButtonGroup styleButtonGroup = new ButtonGroup();
-			for(int i=0; i<styles.length; i++) {
-				styleItems[i] = new JRadioButtonMenuItem(styleNames[i]);
-				styleMenu.add(styleItems[i]);
-				styleButtonGroup.add(styleItems[i]);
-				styleItems[i].addActionListener(textHandler);
-			}
-			
-			
-			//sizeMenu
-			JMenu sizeMenu = new JMenu("Text Size");
-			ButtonGroup sizeButtonGroup = new ButtonGroup();
-			for(int i=0; i<textSizes.length; i++) {
-				textSizeItems[i] = new JRadioButtonMenuItem(Integer.toString(textSizes[i]));
-				sizeMenu.add(textSizeItems[i]);
-				sizeButtonGroup.add(textSizeItems[i]);
-				textSizeItems[i].addActionListener(textHandler);
-			}
-			
-			textMenu.add(fontMenu);
-			textMenu.add(styleMenu);
-			textMenu.add(sizeMenu);
-			
-		
+
+		//font menu
+		JMenu fontMenu = new JMenu("Text Font");
+		populateMenu(fonts, fontItems, fontMenu, textHandler);
+
+		//style menu
+		JMenu styleMenu = new JMenu("Text Style");
+		populateMenu(styleNames, styleItems, styleMenu, textHandler);
+
+		//sizeMenu
+		JMenu sizeMenu = new JMenu("Text Size");
+		populateMenu(textSizes, textSizeItems, sizeMenu, textHandler);
+
+		textMenu.add(fontMenu);
+		textMenu.add(styleMenu);
+		textMenu.add(sizeMenu);
+
 		//default choices
 		JMenuItem revertItem = new JMenuItem("Restore Default");
-		revertItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				errorColorItems[0].setSelected(true);
-				noErrorColorItems[2].setSelected(true);
-				fontItems[0].setSelected(true);
-				styleItems[0].setSelected(true);
-				textSizeItems[1].setSelected(true);
-				
-				loadDefaultSettings();
-				System.out.println("Default settings loaded. A restart might be needed for some changes to apply.");
-			}
+		revertItem.addActionListener(e -> {
+			errorColorItems[0].setSelected(true);
+			noErrorColorItems[2].setSelected(true);
+			fontItems[0].setSelected(true);
+			styleItems[0].setSelected(true);
+			textSizeItems[1].setSelected(true);
+
+			loadDefaultSettings();
+			System.out.println("Default settings loaded. A restart might be needed for some changes to apply.");
 		});
-		
+
 		customMenu.add(lookAndFeelMenu);
 		customMenu.add(textMenu);
 		customMenu.add(noErrorColorMenu);
 		customMenu.add(errorColorMenu);
 		customMenu.add(syntaxMenu);
 		customMenu.add(revertItem);
-		
-		
-	//Help Menu
+
+		//Help Menu
 		JMenu helpMenu = new JMenu("Help");
-		
-			ProcessorHelpHandler processorHelpHandler = new ProcessorHelpHandler();
-			JMenu processorHelpMenu = new JMenu("Preprocessor");
-			//preprocessor help
-			ButtonGroup processorCommandButtonGroup = new ButtonGroup();
-			for(int i=0; i < processorHelpItems.length; i++) {
-				processorHelpItems[i] = new JRadioButtonMenuItem(processorCommands[i]);
-				processorHelpMenu.add(processorHelpItems[i]);
-				processorCommandButtonGroup.add(processorHelpItems[i]);
-				processorHelpItems[i].addActionListener(processorHelpHandler);
-			}
-			
-			InterpreterHelpHandler interpHelpHandler = new InterpreterHelpHandler();
-			//interpreter help
-			JMenu interpreterHelpMenu = new JMenu("Interpreter");
-			ButtonGroup interpCommandButtonGroup = new ButtonGroup();
-			for(int i=0; i < interpHelpItems.length; i++) {
-				interpHelpItems[i] = new JRadioButtonMenuItem(interpeterCommands[i]);
-				interpreterHelpMenu.add(interpHelpItems[i]);
-				interpCommandButtonGroup.add(interpHelpItems[i]);
-				interpHelpItems[i].addActionListener(interpHelpHandler);
-			}
-			
-			helpMenu.add(processorHelpMenu);
-			helpMenu.add(interpreterHelpMenu);
-			
+
+		//preprocessor help
+		JMenu processorHelpMenu = new JMenu("Preprocessor");
+		populateMenu(processorCommands, processorHelpItems, processorHelpMenu, new ProcessorHelpHandler());
+
+		//interpreter help
+		JMenu interpreterHelpMenu = new JMenu("Interpreter");
+		populateMenu(interpeterCommands, interpHelpItems, interpreterHelpMenu, new InterpreterHelpHandler());
+
+		helpMenu.add(processorHelpMenu);
+		helpMenu.add(interpreterHelpMenu);
+
 		menuBar.add(fileMenu);
 		menuBar.add(customMenu);
 		menuBar.add(helpMenu);
-		
+
 		return menuBar;
 	}
 	
