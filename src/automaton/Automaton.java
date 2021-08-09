@@ -29,7 +29,7 @@ public interface Automaton {
 	 * (the node which will be first activated upon reading any word).
 	 * There can only be one initialization node in an automaton and it's the first node to be created.
 	 * 
-	 * @param name
+	 * @param name the nodes name
 	 * @return true if the node is an initialization node, false otherwise.
 	 */
 	boolean isFirst(char name);
@@ -39,13 +39,14 @@ public interface Automaton {
 	 * (a node that when read on the end of the word, accepts it).
 	 * There can only be more than one accept-state nodes in an automaton, which are specified to be so at the time of creation.
 	 * 
-	 * @param name
+	 * @param name the nodes name
 	 * @return true if the node is an accept-state node, false otherwise.
 	 */
 	boolean isLast(char name);
 	
 	/**
 	 * Returns a nice, formatted string informing the user whether or not the supplied word is accepted by the automaton.
+	 * @returns a message for the end-user
 	 * @see #isAccepted()
 	 * @throws InvalidAutomatonException if the Automaton's construction is unfinished.
 	 */
@@ -79,7 +80,7 @@ public interface Automaton {
 	
 	/**
 	 * Takes any string and runs it through the automaton, returns whether or not it's accepted.
-	 * @param word
+	 * @param word the string representing the word being computed
 	 * @return true if accepted, false otherwise
 	 * @throws InvalidAutomatonException if the Automaton's construction is unfinished
 	 */
