@@ -10,7 +10,7 @@ import java.util.Map.Entry;
  * @author dimits
  *
  */
-public abstract class FiniteAutomaton implements Automaton{
+abstract class FiniteAutomaton implements Automaton{
 	//Data
 	protected Node first;
 	protected final HashMap<Character,Node> last;
