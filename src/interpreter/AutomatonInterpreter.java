@@ -16,10 +16,11 @@ import automaton.Automaton;
  * A class that uses an instance of Automaton to modify / show information about it while also protecting the user from internal errors.
  * Used as a console for the end user. Make sure to modify the 'out' and 'err' streams if used in a non-terminal application.
  *
+ * @author dimits
  */
 public class AutomatonInterpreter {
 	
-	Automaton g = null;
+	Automaton automaton = null;
 	/** A list of successful commands inputed in the current session.*/
 	LinkedList<String> record; 
 	
@@ -28,14 +29,7 @@ public class AutomatonInterpreter {
 	private PrintStream out, err;
 	
 //static methods
-	
-	/*
-	 * I thought about making a new class named sth like "CommandDescriptions" that would handle all these
-	 * help-print methods for both the interpreter and the preprocessor but it's probably more straightforward to
-	 * simply defined these 2 methods with the same name and directly call them for every class that needs them 
-	 * (which unless Im crazy enough to somehow expand this project even more should only be the editor).
-	 */
-	
+		
 	/**
 	 * Returns a list of every command used by the interpreter.
 	 */
@@ -105,7 +99,7 @@ public class AutomatonInterpreter {
 		//flush internal data
 		out = null;
 		err = null;
-		g = null;
+		automaton = null;
 		record = null;
 		importNames = null;
 		
@@ -116,7 +110,7 @@ public class AutomatonInterpreter {
 	 * Deletes the old automaton and flushes internal memory.
 	 */
 	public void reset() {
-		g = null;
+		automaton = null;
 		record = new LinkedList<String>(); 
 		//keep imported files in memory
 	}
@@ -149,14 +143,17 @@ public class AutomatonInterpreter {
 			err.println(String.format("%s Unknown command \"%s\"", SyntaxException.ERROR_MESSAGE , str_com));
 			successful = false;
 		}
-		else if (g == null && com.isMutable) {  //IF QUERY TO CHANGE STATE OF NON-INITIALIZED AUTOMATON
+		else if (automaton == null && com.isMutable) {  //IF QUERY TO CHANGE STATE OF NON-INITIALIZED AUTOMATON
 			err.println(InterpreterException.ERROR_MESSAGE + "No defined automaton: See 'help create_new'");	
 			successful = false;
 		}
 		else { 															 
 			//run valid command			
 			try {
-				this.out.println(com.execute(this, s.substring(str_com.length()).toLowerCase().strip())); //send the 2nd argument, removing all whitespace
+				//send the 2nd argument, removing all whitespace
+				String arguments  = s.substring(str_com.length()).toLowerCase().strip();
+				String confirmationMessage = com.execute(this, arguments);
+				this.out.println(confirmationMessage); 
 			}		
 			catch(InterpreterException | SyntaxException ie) {
 				this.err.println(ie.getMessage());
@@ -248,7 +245,8 @@ public class AutomatonInterpreter {
 		try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
 			
 			for(String s : record) {			//write all commands in the file
-				Command com = Command.commands.get(s.split(" ")[0].toLowerCase().strip());
+				String commandString = s.split(" ")[0].toLowerCase().strip();
+				Command com = Command.commands.get(commandString);
 				if(com.isExportable) { 			//if writable command
 					out.write(s);
 					out.newLine(); 				//OS independent
