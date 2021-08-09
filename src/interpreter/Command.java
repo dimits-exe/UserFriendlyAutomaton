@@ -159,7 +159,7 @@ enum Command {
 						throw new SyntaxException(type.toUpperCase() + " is not a valid automaton type");
 				}
 
-				dr.record = new LinkedList<String>(); //wipe previous data
+				interp.record = new LinkedList<String>(); //wipe previous data
 				return "Succesfully initialized the automaton";
 			}
 			
@@ -173,7 +173,7 @@ enum Command {
 				if(tokens.strip().equals(""))
 					throw new SyntaxException("No file name given.");
 				
-				dr.exportToFileSystem(Paths.get(tokens).toFile());
+				interp.exportToFileSystem(Paths.get(tokens).toFile());
 				
 				return "Export successful!";
 			}
@@ -198,8 +198,8 @@ enum Command {
 		
 		EXIT("The final command for the interpreter. No more commands will be accepted after this call and the program should exit.",false,false){
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr, String tokens) throws RuntimeException {
-				dr.close();
+			protected String executeCommand(AutomatonInterpreter interp, String tokens) throws RuntimeException {
+				interp.close();
 				return "Closing interpeter...";
 			}
 
@@ -221,13 +221,13 @@ enum Command {
 	
 	// methods
 		/**
-		 * Executes a method changing the internal state of the provided automaton based on the parameters given.
-		 * @param g the automaton to be changed
+		 * Executes a method modifying the internal state of the provided automaton based on the parameters given.
+		 * @param automaton the automaton to be modified
 		 * @param tokens the string containing the parameters
 		 * @return a confirmation message
 		 * @throws RuntimeException any error that might be caused by faulty parameters or thrown by the automaton itself
 		 */
-		protected abstract String executeCommand(AutomatonInterpreter dr, String tokens) throws RuntimeException;
+		protected abstract String executeCommand(AutomatonInterpreter automaton, String tokens) throws RuntimeException;
 		
 		final String execute(AutomatonInterpreter interp, String tokens) {
 			String output;
