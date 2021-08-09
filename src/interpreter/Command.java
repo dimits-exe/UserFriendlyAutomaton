@@ -12,17 +12,19 @@ import automaton.NFA;
 /**
  * An enumeration containing information about, defining and implementing all known commands to the interpreter.
  *
+ * @author dimits
+ *
  */
 enum Command {
 		
 		ADD ("add <node_name>,<node_name>,...\n"+
 				"Creates new nodes with the selected names (in uppercase) and adds them to the automaton",true,true){
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr, String args) {
+			protected String executeCommand(AutomatonInterpreter interp, String args) {
 				StringBuffer sb = new StringBuffer("Created node(s) ");
 				for(char c : parseNames(args)) {
 					// if all names accepted
-					dr.g.addNode(c);
+					interp.automaton.addNode(c);
 					sb.append(c);
 					sb.append(", ");
 				}
@@ -35,8 +37,8 @@ enum Command {
 		EXECUTE( "Returns a nice formatted string informing the user whether or not the supplied word is accepted by the automaton.\n"+
 				"A word is accepted if the node on which the last character of the word is considered an 'accept-state' (see 'help make_accept')",true,true) {
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr, String word) {
-				return dr.g.formatAnswer(word);
+			protected String executeCommand(AutomatonInterpreter interp, String word) {
+				return interp.automaton.testAndGetMessage(word);
 			}
 
 		},
@@ -45,14 +47,15 @@ enum Command {
 				"show all\n"+
 				"Shows information about each of the provided / all of the nodes.",false,true){
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr, String tokens) {
+			protected String executeCommand(AutomatonInterpreter interp, String tokens) {
 				if(tokens.strip().equals("all"))
-					return dr.g.toString();
+					return interp.automaton.toString();
 				else {
 					char[] letters =  parseNames(tokens);
 					StringBuffer sb = new StringBuffer();
 					for(char c: letters)
-						sb.append(dr.g.getNodeInfo(c).toString());
+						sb.append(interp.automaton.getNodeInfo(c).toString());
+					
 					return sb.toString();
 				}
 			}
@@ -65,7 +68,7 @@ enum Command {
 				"For example if alphabet = 'a','b', typing 'connect A to C,D' means  A--(a)--> C, A--(b)-->D.",true,true) {
 			
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr, String args) {
+			protected String executeCommand(AutomatonInterpreter interp, String args) {
 				String delimiter = null;
 				if(args.contains("to")) delimiter = "to";
 				else if(args.contains("->")) delimiter = "->";
@@ -74,7 +77,7 @@ enum Command {
 					throw new SyntaxException("No 'to' or '->' delimiter found.");
 				
 				String[] tokens = args.split(delimiter);
-				parseNodeConnections(tokens[0].charAt(0),tokens[1],dr.g);
+				parseNodeConnections(tokens[0].charAt(0),tokens[1], interp.automaton);
 				return "Nodes succesfully connected";
 			}
 			
@@ -99,12 +102,12 @@ enum Command {
 				"Turns all the provided nodes into accept-state (nodes that when read last, define that the computation is successful).",true,true) {
 			
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr, String args) {
+			protected String executeCommand(AutomatonInterpreter interp, String args) {
 				char[] c_ls = parseNames(args);
 				StringBuffer sb = new StringBuffer();
 				
 				for(char c: c_ls) {
-					dr.g.makeAcceptState(c);
+					interp.automaton.makeAcceptState(c);
 					sb.append(c);
 					sb.append(" ,");
 				}
@@ -121,7 +124,7 @@ enum Command {
 		HELP("help <command_name>\nDisplays a basic description of the given command.",false,false) {
 			
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr,String args) {
+			protected String executeCommand(AutomatonInterpreter interp,String args) {
 				Command com = commands.get(args);
 				if(com == null)
 					return "Invalid command; " + COMMAND_HELP_LIST;
@@ -135,7 +138,7 @@ enum Command {
 				"Creates a new automaton of type T with the alphabet {a,b,c,...}. This needs to be the FIRST command in order to run the other commands",true,false){
 
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr, String tokens) throws RuntimeException {
+			protected String executeCommand(AutomatonInterpreter interp, String tokens) throws RuntimeException {
 	
 				int indexOfDelimeter = tokens.indexOf(' ');
 				if(indexOfDelimeter == -1)
@@ -147,10 +150,10 @@ enum Command {
 				switch(type) { //find type
 				//this would normally be within a factory class as the interpreter has no business knowing all the subclasses of Automaton 
 					case "nfa":
-						dr.g = new NFA(parseNames(letters)); 
+						interp.automaton = new NFA(parseNames(letters)); 
 						break;
 					case "dfa":
-						dr.g = new DFA(parseNames(letters)); 
+						interp.automaton = new DFA(parseNames(letters)); 
 						break;
 					default:
 						throw new SyntaxException(type.toUpperCase() + " is not a valid automaton type");
@@ -166,7 +169,7 @@ enum Command {
 				"Writes all the successfully executed commands to an external file which can be loaded later to replicate the automaton",false,false){
 
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr, String tokens) throws RuntimeException {
+			protected String executeCommand(AutomatonInterpreter interp, String tokens) throws RuntimeException {
 				if(tokens.strip().equals(""))
 					throw new SyntaxException("No file name given.");
 				
@@ -181,13 +184,12 @@ enum Command {
 						"Opens the file with the provided name and executes its commands one by one. File must be in the same directory as the program.",false,false){
 
 			@Override
-			protected String executeCommand(AutomatonInterpreter dr, String fileName) throws RuntimeException {
+			protected String executeCommand(AutomatonInterpreter interp, String fileName) throws RuntimeException {
 				
 				if(fileName.strip().equals(""))
 					throw new SyntaxException("No file name given.");
 				
-				
-				dr.importFromFileSystem(Paths.get(fileName).toFile());
+				interp.importFromFileSystem(Paths.get(fileName).toFile());
 				
 				return "File execution successful";
 			}
@@ -227,10 +229,10 @@ enum Command {
 		 */
 		protected abstract String executeCommand(AutomatonInterpreter dr, String tokens) throws RuntimeException;
 		
-		final String execute(AutomatonInterpreter dr, String tokens) {
+		final String execute(AutomatonInterpreter interp, String tokens) {
 			String output;
 			try {
-				output = executeCommand(dr,tokens);
+				output = executeCommand(interp, tokens);
 			} catch(ArrayIndexOutOfBoundsException e) {
 				throw new SyntaxException("Too few parameters for command call; Use the 'help' command for a valid definition.");
 			}
