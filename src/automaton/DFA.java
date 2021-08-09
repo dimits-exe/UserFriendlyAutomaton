@@ -1,26 +1,27 @@
 package automaton;
 import java.util.Arrays;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 
 /**
  * A class representing a theoretical Deterministic Finite Automaton (DFA), with its own alphabet and nodes.
- * Once built, the method isAccepted can be used to evaluate whether or not any word is accepted by the machine.
+ *
+ * @author dimits
  */
 public class DFA extends FiniteAutomaton {
 		
-	public DFA(char[] alphabet) throws IllegalArgumentException {
+	public DFA(char[] alphabet) throws InvalidTransitionException {
 		super(alphabet);
 		for (int i=0; i<=alphabet.length-1;i++)
 			if (alphabet[i] == EMPTY) 
-				throw new IllegalArgumentException("The constant of the empty move should not be used in a Deterministic Automaton");
+				throw new InvalidTransitionException("The constant of the empty move should not be used in a Deterministic Automaton");
 			
 	}
 	
 	@Override
-	public void connect(char nodeName, char letter, char targetName) throws IllegalArgumentException {
+	public void connect(char nodeName, char letter, char targetName) throws InvalidNodedException, InvalidTransitionException {
 		if(letter == EMPTY)
-			throw new IllegalArgumentException("The constant of the empty move should not be used in a Deterministic Automaton");
+			throw new InvalidTransitionException("The constant of the empty move should not be used in a Deterministic Automaton");
+		
 		((DFANode) node(nodeName)).addNeighbors(letter, targetName);
 	}
 	
@@ -33,21 +34,21 @@ public class DFA extends FiniteAutomaton {
 	 * Takes any string and runs it through the automaton, returns whether or not it's accepted.
 	 * @param word
 	 * @return true if accepted, false otherwise
-	 * @throws IllegalStateException if any node isn't connected to all possible letters of its alphabet.
+	 * @throws InvalidAutomatonException if any node isn't connected to all possible letters of its alphabet.
 	 */
-	public boolean isAccepted(String word) throws IllegalStateException {
+	public boolean isAccepted(String word) throws InvalidAutomatonException {
 		word = word.replace(Character.toString(EMPTY), ""); //there's no ' ' char so we have to use strings
 		
 		//state checks
 		if(!isComplete())
-			throw new IllegalStateException(errorMessage()
+			throw new InvalidAutomatonException(errorMessage()
 					+"\nThis automaton does not represent a finite-state-machine");
 		
 		if(size() == 0)
-			throw new IllegalStateException("This automaton is empty");
+			throw new InvalidAutomatonException("This automaton is empty");
 		
 		if(last.isEmpty()) { 
-			throw new IllegalStateException("*Warning*: No accept-states specified: no word can be accepted");
+			throw new InvalidAutomatonException("*Warning*: No accept-states specified: no word can be accepted");
 		}
 		
 		//calculation		
@@ -66,7 +67,9 @@ public class DFA extends FiniteAutomaton {
 
 	private boolean isComplete() { //check to see if all nodes are connected to exactly one other node
 		for(Entry<Character, FiniteAutomaton.Node> n : nodes.entrySet()) 
-			if(!((DFANode) n.getValue()).isComplete()) return false;
+			if(!((DFANode) n.getValue()).isComplete())
+				return false;
+		
 		return true;
 	}
 	
@@ -113,12 +116,12 @@ public class DFA extends FiniteAutomaton {
 		 * Adds a connection between this node and the targetNode via a letter
 		 * @param letter the letter that leads the transition
 		 * @param targetName the name of the node to be connected
-		 * @throws IndexOutOfBoundsException if the letter doesn't belong to the alphabet
+		 * @throws InvalidTransitionException if the letter doesn't belong to the alphabet
 		 */
-		void addNeighbors(char letter, char targetName) throws IndexOutOfBoundsException {
+		void addNeighbors(char letter, char targetName) throws InvalidTransitionException {
 			int index = findInAlphabet(letter);
 			if(index == -1) 
-				throw new IndexOutOfBoundsException("Letter " + letter + " is not in the alphabet " + Arrays.toString(alphabet));
+				throw new InvalidTransitionException("Letter " + letter + " is not in the alphabet " + Arrays.toString(alphabet));
 			adjacents[index] = targetName;
 		}
 		
@@ -127,12 +130,12 @@ public class DFA extends FiniteAutomaton {
 		 * 
 		 * @param letter
 		 * @return The referenced node's name
-		 * @throws NoSuchElementException if the input was outside of the alphabet
+		 * @throws InvalidTransitionException if the input was outside of the alphabet
 		 */
-		char getNeighbour(char letter) throws NoSuchElementException{
+		char getNeighbour(char letter) throws InvalidTransitionException{
 			int index = findInAlphabet(letter);
 			if(index == -1) 
-				throw new NoSuchElementException("Letter " + letter + " is not in the alphabet " + Arrays.toString(alphabet));
+				throw new InvalidTransitionException("Letter " + letter + " is not in the alphabet " + Arrays.toString(alphabet));
 			return adjacents[index];
 		}
 		
