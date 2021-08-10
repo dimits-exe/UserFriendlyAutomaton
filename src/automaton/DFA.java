@@ -9,11 +9,11 @@ import java.util.Map.Entry;
  */
 public class DFA extends FiniteAutomaton {
 		
-	public DFA(char[] alphabet) throws InvalidTransitionException {
+	public DFA(char[] alphabet) throws IllegalArgumentException  {
 		super(alphabet);
 		for (int i=0; i<=alphabet.length-1;i++)
 			if (alphabet[i] == EMPTY) 
-				throw new InvalidTransitionException("The constant of the empty move should not be used in a Deterministic Automaton");
+				throw new IllegalArgumentException ("The character 'empty move' should not be used in a Deterministic Automaton");
 			
 	}
 	
@@ -119,23 +119,27 @@ public class DFA extends FiniteAutomaton {
 		 * @throws InvalidTransitionException if the letter doesn't belong to the alphabet
 		 */
 		void addNeighbors(char letter, char targetName) throws InvalidTransitionException {
-			int index = findInAlphabet(letter);
+			int index = indexInAlphabet(letter);
+			
 			if(index == -1) 
 				throw new InvalidTransitionException("Letter " + letter + " is not in the alphabet " + Arrays.toString(alphabet));
+			
 			adjacents[index] = targetName;
 		}
 		
 		/**
 		 * Returns the name of the node corresponding to the given letter of the alphabet.
 		 * 
-		 * @param letter
+		 * @param letter the transition's character
 		 * @return The referenced node's name
 		 * @throws InvalidTransitionException if the input was outside of the alphabet
 		 */
 		char getNeighbour(char letter) throws InvalidTransitionException{
-			int index = findInAlphabet(letter);
+			int index = int index = indexInAlphabet(letter);
+			
 			if(index == -1) 
 				throw new InvalidTransitionException("Letter " + letter + " is not in the alphabet " + Arrays.toString(alphabet));
+			
 			return adjacents[index];
 		}
 		
