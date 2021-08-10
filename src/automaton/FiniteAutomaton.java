@@ -10,11 +10,14 @@ import java.util.Map.Entry;
  * @author dimits
  *
  */
-abstract class FiniteAutomaton implements Automaton{
+abstract class FiniteAutomaton implements Automaton {
 	//Data
 	protected Node first;
 	protected final HashMap<Character,Node> last;
 	
+	/**
+	 * An array of unique characters that are available for the automaton's transitions.
+	 */
 	protected final char[] alphabet;
 	protected final TreeMap<Character,Node> nodes;
 	
@@ -119,17 +122,19 @@ abstract class FiniteAutomaton implements Automaton{
 	}
 	
 	/**
-	 * Standard linear search function looking for a character inside the alphabet
-	 * @return -1 if not found, index of s else.
+	 * Returns the index of the provided character in the automaton's alphabet, if it exists.
+	 * 
+	 * @return The index of the character, -1 else.
 	 */
-	protected int findInAlphabet(char s) {	
+	protected int indexInAlphabet(char c) {	
 		for(int i=0; i<alphabet.length; i++)
-			if(alphabet[i] == s)
+			if(alphabet[i] == c)
 				return i;
+		
 		return -1;
-	}	
+	}		
 	
-	private boolean hasDuplicates(char[] arr) { //checks alphabet validity
+	private static boolean hasDuplicates(char[] arr) { //checks alphabet validity
 		for(int i=0; i<=arr.length-1; i++) 
 			for(int j=0; j<=arr.length-1; j++) 
 				if(i!=j) 
