@@ -208,8 +208,8 @@ public class AutomatonInterpreter {
 				return;
 			}
 			
-			successful = executeCommand(command);
-			if(!successful) {
+			executeCommand(command);
+			if(!executionWasSuccessful) {
 				err.printf("\t at command number %d, \"%s\"\n",line, command);
 				return;
 			} else
