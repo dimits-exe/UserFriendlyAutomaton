@@ -130,10 +130,13 @@ class BackgroundRuntime {
 			// clear area
 			output.setText("");
 
-			AutomatonInterpreter interp = new AutomatonInterpreter(new PrintStream(new NullOutputStream()),
-					new PrintStream(new ConsoleOutputStream(Color.RED, null, output.getDocument(), output, true),true));
-
-			result(interp.executeBatch(doc.getText(0, doc.getLength())));
+			
+			try(PrintStream noOutputStream = new PrintStream(new NullOutputStream());
+					PrintStream textAreaOutputStream = new PrintStream(new ConsoleOutputStream(Color.RED, null, output.getDocument(), output, true),true);) {
+				AutomatonInterpreter interp = new AutomatonInterpreter(noOutputStream, textAreaOutputStream);
+				interp.executeBatch(doc.getText(0, doc.getLength()));
+				result(interp.wasSuccessful());
+			}
 
 			return null;
 		}
