@@ -30,17 +30,18 @@ class HighlightedStyledDocument extends DefaultStyledDocument {
      */
 	public static enum TextType{
         /** Type for Automaton commands */
-        INTERPRETER(buildPattern(AutomatonInterpreter.getCommands()), boldText),
+        INTERPRETER(0, buildPattern(AutomatonInterpreter.getCommands()), boldText),
 
         /** Type for Preprocessor commands */
-        PREPROCESSOR(buildPattern(Preprocessor.getCommands()), defaultAttributeSet),
+        PREPROCESSOR(1, buildPattern(Preprocessor.getCommands()), defaultAttributeSet),
 
         /** Type for Comments */
-        COMMENTS(Pattern.compile(Preprocessor.COMMENT_REGEX), italicText),
+        COMMENTS(2, Pattern.compile(Preprocessor.COMMENT_REGEX), italicText),
 
         /** Type for Reserved words */
-        RESERVED(buildPattern(AutomatonInterpreter.getReservedWords()), boldText);
-
+        RESERVED(3, buildPattern(AutomatonInterpreter.getReservedWords()), boldText);
+	
+	final int index;
         private final Pattern pattern;
         private AttributeSet  attributes;
 
@@ -49,10 +50,12 @@ class HighlightedStyledDocument extends DefaultStyledDocument {
          * identify the strings of this TextType and an AttributeSet to define the style
          * of the strings.
          *
+	 * @param index a unique number for saving attributes
          * @param pattern    the pattern of the strings
          * @param attributes the style of the strings
          */
-        TextType(Pattern pattern, AttributeSet attributes) {
+        TextType(int index, Pattern pattern, AttributeSet attributes) {
+		this.index = index;
             	this.pattern = pattern;
             	this.attributes = attributes;
 	}
