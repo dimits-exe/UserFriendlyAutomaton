@@ -2,6 +2,8 @@ package interpreter;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.stream.Collectors;
+import java.util.Arrays;
 
 /**
  * A class that extends the syntax available to the user by translating the
@@ -217,14 +219,8 @@ public class Preprocessor {
 	 * @return the array
 	 */
 	public static String[] getCommands() {
-		final Token[]  tokens   = Token.values();
-		final String[] commands = new String[tokens.length - 1];
-
-		int i = 0;
-		for (final Token token : tokens)
-			if (token != Token.DEFAULT)
-				commands[i++] = token.identifier;
-		return commands;
+		return Arrays.asList(Token.values()).stream().filter(t -> t != Token.DEFAULT)
+				.map(t -> t.identifier).collect(Collectors.toList()).toArray(new String[0]);
 	}
 
 	/**

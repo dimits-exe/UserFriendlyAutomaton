@@ -2,8 +2,6 @@ package editor;
 
 import javax.swing.*;
 import javax.swing.UIManager.LookAndFeelInfo;
-import javax.swing.event.UndoableEditEvent;
-import javax.swing.event.UndoableEditListener;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -20,6 +18,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 
 import java.util.Date;
@@ -28,7 +27,7 @@ import java.util.Scanner;
 import interpreter.AutomatonInterpreter;
 import interpreter.Preprocessor;
 
-import editor.CustomStyledDocument.TextType;
+import editor.HighlightedStyledDocument.TextType;
 
 /**
  * A GUI implementation of an automaton interpreter. Designed to be heavily modifiable and user-friendly.
@@ -81,7 +80,7 @@ public final class AutomatonEditor extends JFrame {
 	private final JButton executeButton;
 	
 	private AutomatonInterpreter interp;
-	private CustomStyledDocument textDocument;
+	private HighlightedStyledDocument textDocument;
 	private final BackgroundRuntime backgroundRuntime;
 	private int lastSavedStringCode; 				//to check if unsaved text is present in the codeArea
 	
@@ -151,11 +150,12 @@ public final class AutomatonEditor extends JFrame {
 		codeBorder = new MutableColorBorder(data.noErrorColor);				
 		codeAreaLabel = new JLabel("Editor Area");
 		
-		textDocument = new CustomStyledDocument(data.syntaxColors[0],data.syntaxColors[1],data.syntaxColors[2],data.syntaxColors[3]);
+		textDocument = new HighlightedStyledDocument(data.syntaxColors[0],data.syntaxColors[1],data.syntaxColors[2],data.syntaxColors[3]);
 		codeArea = new JTextPane(textDocument); 
 		codeArea.setFont(new Font(data.textFont, data.textStyle, data.textSize));
 		codeArea.setBorder(codeBorder);
-		new CompoundUndoManager(codeArea);
+		
+		UndoManagerDecorator.decorate(codeArea);
 
 		backgroundRuntime = new BackgroundRuntime(AutomatonEditor.this, singleLineCodeArea, codeArea.getDocument());
 		backgroundRuntime.start();
@@ -172,13 +172,7 @@ public final class AutomatonEditor extends JFrame {
 		interpreterConsole.setFont(new Font(data.textFont, data.textStyle, data.textSize));
 		
 	//add listeners
-		executeButton.addActionListener(
-			new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					executeCode();
-				}
-		});
+		executeButton.addActionListener(e->{ executeCode();});
 		
 	//add components
 		consolePanel.setPreferredSize(new Dimension(700, 500));
@@ -256,7 +250,7 @@ public final class AutomatonEditor extends JFrame {
 
 	}
 	
-	private void saveSettings() {
+	private static void saveSettings() {
 		try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(SETTINGS_FILE_NAME))){
 	         out.writeObject(data);
 	    } catch (IOException ioe) {
@@ -314,7 +308,6 @@ public final class AutomatonEditor extends JFrame {
 			saveText(data.lastFile);
 		else
 			showSaveAsDialog();
-		
 	}
 	
 	/**
@@ -326,7 +319,11 @@ public final class AutomatonEditor extends JFrame {
 		if(data.lastDirectory != null && data.lastDirectory.exists())
 			fc.setCurrentDirectory(data.lastDirectory);
 		else
-			fc.setCurrentDirectory(FileSystems.getDefault().getPath(".").toFile());
+			try(FileSystem fs = FileSystems.getDefault()){
+				fc.setCurrentDirectory(fs.getPath(".").toFile());
+			} catch(IOException ioe) {
+				System.err.println("Error while accessing the file system.");
+			}
 		
 		fc.setDialogTitle("Save As");
 		int returnVal = fc.showSaveDialog(AutomatonEditor.this);
@@ -362,7 +359,11 @@ public final class AutomatonEditor extends JFrame {
 		if(data.lastDirectory != null && data.lastDirectory.exists())
 			fc.setCurrentDirectory(data.lastDirectory);
 		else
-			fc.setCurrentDirectory(FileSystems.getDefault().getPath(".").toFile());
+			try(FileSystem fs = FileSystems.getDefault()){
+				fc.setCurrentDirectory(fs.getPath(".").toFile());
+			} catch(IOException ioe) {
+				System.err.println("Error while accessing the file system");
+			}
 		
 		fc.setDialogTitle("Open File");
 		int returnVal = fc.showOpenDialog(AutomatonEditor.this);
@@ -380,7 +381,7 @@ public final class AutomatonEditor extends JFrame {
 	}
 	
 	//used for showOpenDialog as well as editor initialization
-	private String readFile(File sourceFile) {
+	private static String readFile(File sourceFile) {
 		StringBuilder builder = new StringBuilder();
 		try (Scanner in = new Scanner(sourceFile)){
 			//read lines
@@ -456,7 +457,7 @@ public final class AutomatonEditor extends JFrame {
 		throw new RuntimeException("Value no longer in array");
 	}
 
-	private <T> void populateMenu(T[] info, JRadioButtonMenuItem[] menuItems, JMenu menu, ActionListener l) {
+	private static <T> void populateMenu(T[] info, JRadioButtonMenuItem[] menuItems, JMenu menu, ActionListener l) {
 		ButtonGroup bgroup = new ButtonGroup();
 		for (int i = 0; i < info.length; i++) {
 			menuItems[i] = new JRadioButtonMenuItem(info[i].toString());
@@ -636,7 +637,9 @@ public final class AutomatonEditor extends JFrame {
 			System.out.println("***************************");
 			System.out.println("Execution started at " + new Date(System.currentTimeMillis()) +":");
 			
-			changeBorder(interp.executeBatch(codeArea.getText()));
+			interp.executeBatch(codeArea.getText());
+
+			changeBorder(interp.wasSuccessful());
 			
 			System.out.println("***************************");
 			

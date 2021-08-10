@@ -9,15 +9,26 @@ import javax.swing.event.*;
 import javax.swing.undo.*;
 
 /**
-**  This class will merge individual edits into a single larger edit.
-**  That is, characters entered sequentially will be grouped together and
-**  undone as a group. Any attribute changes will be considered as part
-**  of the group and will therefore be undone when the group is undone.
+*  	This class will merge individual edits into a single larger edit.
+*  	That is, characters entered sequentially will be grouped together and
+*  	undone as a group. Any attribute changes will be considered as part
+*  	of the group and will therefore be undone when the group is undone. <br>
+*  
+*  	Uses the decorator pattern to attach functionality to a text component.
 *
-*@author Robert Camick, class interface heavily modified by me because of Java 9 changes to listeners API.
+*	@author Robert Camick, dimits (class interface heavily modified because of Java 9 changes to listeners API).
 */
-class CompoundUndoManager extends UndoManager implements UndoableEditListener, DocumentListener {
-
+class UndoManagerDecorator extends UndoManager implements UndoableEditListener, DocumentListener {
+	
+	/**
+	 * Creates a compound undo manager and attaches it to the provided text component.
+	 * 
+	 * @param textComponent the component which will be given undo-redo functionality.
+	 */
+	public static void decorate(JTextComponent textComponent) {
+		new UndoManagerDecorator(textComponent);
+	}
+	
 	private static final long serialVersionUID = 1L;
 	private CompoundEdit compoundEdit;
 	private JTextComponent textComponent;
@@ -29,7 +40,10 @@ class CompoundUndoManager extends UndoManager implements UndoableEditListener, D
 	private int lastOffset;
 	private int lastLength;
 	
-	public CompoundUndoManager(JTextComponent textComponent) {
+	/**
+	* Creates a compound undo manager whose undo/redo methods can be called manually.
+	*/
+	public UndoManagerDecorator(JTextComponent textComponent) {
 		this.textComponent = textComponent;
 		textComponent.getDocument().addUndoableEditListener( this );
 		textComponent.addKeyListener(new UndoRedoKeyListener());
@@ -199,9 +213,9 @@ class CompoundUndoManager extends UndoManager implements UndoableEditListener, D
 		@Override          
 		public void keyPressed(KeyEvent e) {
 			if ((e.getKeyCode() == KeyEvent.VK_Z) && ((e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) == KeyEvent.CTRL_DOWN_MASK)) {
-				CompoundUndoManager.this.undo();
+				UndoManagerDecorator.this.undo();
 			} else if ((e.getKeyCode() == KeyEvent.VK_Y) && ((e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) == KeyEvent.CTRL_DOWN_MASK)) {
-				CompoundUndoManager.this.redo();
+				UndoManagerDecorator.this.redo();
 			}
 		}
 

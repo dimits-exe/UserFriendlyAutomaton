@@ -16,26 +16,21 @@ import automaton.Automaton;
  * A class that uses an instance of Automaton to modify / show information about it while also protecting the user from internal errors.
  * Used as a console for the end user. Make sure to modify the 'out' and 'err' streams if used in a non-terminal application.
  *
+ * @author dimits
  */
 public class AutomatonInterpreter {
 	
-	Automaton g = null;
+	Automaton automaton = null;
 	/** A list of successful commands inputed in the current session.*/
 	LinkedList<String> record; 
 	
 	private boolean isClosed = false;
 	private Set<File> importNames = new HashSet<File>(); //prevents recursive imports
 	private PrintStream out, err;
+	private boolean executionWasSuccessful;
 	
 //static methods
-	
-	/*
-	 * I thought about making a new class named sth like "CommandDescriptions" that would handle all these
-	 * help-print methods for both the interpreter and the preprocessor but it's probably more straightforward to
-	 * simply defined these 2 methods with the same name and directly call them for every class that needs them 
-	 * (which unless Im crazy enough to somehow expand this project even more should only be the editor).
-	 */
-	
+		
 	/**
 	 * Returns a list of every command used by the interpreter.
 	 */
@@ -99,13 +94,20 @@ public class AutomatonInterpreter {
 	public boolean isClosed() {return isClosed;}
 	
 	/**
+	 * Whether the last execution of the interpreter was successful.
+	 * 
+	 * @return true if all commands were properly executed, false otherwise. 
+	 */
+	public boolean wasSuccessful() {return executionWasSuccessful;}
+	
+	/**
 	 * Closes the interpreter. No more commands will be accepted.
 	 */
 	public void close() {
 		//flush internal data
 		out = null;
 		err = null;
-		g = null;
+		automaton = null;
 		record = null;
 		importNames = null;
 		
@@ -116,7 +118,7 @@ public class AutomatonInterpreter {
 	 * Deletes the old automaton and flushes internal memory.
 	 */
 	public void reset() {
-		g = null;
+		automaton = null;
 		record = new LinkedList<String>(); 
 		//keep imported files in memory
 	}
@@ -137,7 +139,7 @@ public class AutomatonInterpreter {
 	 * Executes a command on the automaton. Sends any errors in the standard error stream.
 	 * @param s containing the command-keyword and followed by any parameters depending on the command.
 	 */
-	public boolean executeCommand(String s) {
+	public void executeCommand(String s) {
 		String str_com = s.split(" ")[0].toLowerCase().strip(); 		//first word == command keyword
 		Command com = Command.commands.get(str_com);
 		boolean successful = true;
@@ -149,14 +151,17 @@ public class AutomatonInterpreter {
 			err.println(String.format("%s Unknown command \"%s\"", SyntaxException.ERROR_MESSAGE , str_com));
 			successful = false;
 		}
-		else if (g == null && com.isMutable) {  //IF QUERY TO CHANGE STATE OF NON-INITIALIZED AUTOMATON
+		else if (automaton == null && com.isMutable) {  //IF QUERY TO CHANGE STATE OF NON-INITIALIZED AUTOMATON
 			err.println(InterpreterException.ERROR_MESSAGE + "No defined automaton: See 'help create_new'");	
 			successful = false;
 		}
 		else { 															 
 			//run valid command			
 			try {
-				this.out.println(com.execute(this, s.substring(str_com.length()).toLowerCase().strip())); //send the 2nd argument, removing all whitespace
+				//send the 2nd argument, removing all whitespace
+				String arguments  = s.substring(str_com.length()).toLowerCase().strip();
+				String confirmationMessage = com.execute(this, arguments);
+				this.out.println(confirmationMessage); 
 			}		
 			catch(InterpreterException | SyntaxException ie) {
 				this.err.println(ie.getMessage());
@@ -171,7 +176,7 @@ public class AutomatonInterpreter {
 		if(successful && !isClosed) 
 			record.add(s);
 		
-		return successful;
+		executionWasSuccessful = successful;
 	}
 	
 	/**
@@ -179,35 +184,37 @@ public class AutomatonInterpreter {
 	 * @param commands the text including all the commands
 	 * @see Command#COMMAND_DELIMETER
 	 */
-	public boolean executeBatch(String commands) {
-		if(commands.isBlank()) {
+	public void executeBatch(String commands) {
+		if(commands.isBlank())  {
 			err.println(SyntaxException.ERROR_MESSAGE + "No text found.");
-			return false;
+			executionWasSuccessful = false;
+			return;
 		}
 			
 		int line = 1;
-		boolean successful = true;
 		String actualCode;
 		
 		try {
 			actualCode = Preprocessor.process(commands);
 		} catch(SyntaxException se) {
 			err.println(se.getMessage());
-			return false;
+			executionWasSuccessful = false;
+			return;
 		}
 		
 		for(String command : splitCommands(actualCode)) {
-			if(isClosed)
-				return true;
+			if(isClosed) {
+				executionWasSuccessful = true;
+				return;
+			}
 			
-			successful = executeCommand(command);
-			if(!successful) {
+			executeCommand(command);
+			if(!executionWasSuccessful) {
 				err.printf("\t at command number %d, \"%s\"\n",line, command);
-				return false;
+				return;
 			} else
 				line++;
 		}
-		return true;
 	}
 	
 	/**
@@ -245,13 +252,14 @@ public class AutomatonInterpreter {
 	 */
 	void exportToFileSystem(File file) {
 
-		try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
 			
 			for(String s : record) {			//write all commands in the file
-				Command com = Command.commands.get(s.split(" ")[0].toLowerCase().strip());
+				String commandString = s.split(" ")[0].toLowerCase().strip();
+				Command com = Command.commands.get(commandString);
 				if(com.isExportable) { 			//if writable command
-					out.write(s);
-					out.newLine(); 				//OS independent
+					writer.write(s);
+					writer.newLine(); 				//OS independent
 				}
 			}
 

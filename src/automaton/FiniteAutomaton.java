@@ -1,19 +1,23 @@
 package automaton;
 
 import java.util.HashMap;
-import java.util.NoSuchElementException;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
 /**
- * A class describing any finite-state machine that can accept or reject individual words.
+ * A class handling the common functionality of any finite-state machine that can accept or reject individual words.
+ * 
+ * @author dimits
  *
  */
-public abstract class FiniteAutomaton implements Automaton{
+abstract class FiniteAutomaton implements Automaton {
 	//Data
 	protected Node first;
 	protected final HashMap<Character,Node> last;
 	
+	/**
+	 * An array of unique characters that are available for the automaton's transitions.
+	 */
 	protected final char[] alphabet;
 	protected final TreeMap<Character,Node> nodes;
 	
@@ -23,7 +27,7 @@ public abstract class FiniteAutomaton implements Automaton{
 	 * @param alphabet an array with all the letters the automaton can recognize
 	 * @throws IllegalArgumentException if the alphabet contains duplicates or is null
 	 */
-	public FiniteAutomaton(char[] alphabet) throws IllegalArgumentException {
+	public FiniteAutomaton(char[] alphabet) throws IllegalArgumentException { //no need for a custom exception here
 		if(hasDuplicates(alphabet))
 			throw new IllegalArgumentException("The alphabet can't contain duplicate characters.");
 		if(alphabet == null)
@@ -36,7 +40,7 @@ public abstract class FiniteAutomaton implements Automaton{
 	}
 	
 	@Override
-	public final void makeAcceptState(char name) throws NoSuchElementException {
+	public final void makeAcceptState(char name) throws InvalidTransitionException {
 		last.put(name,node(name));
 	}
 	
@@ -52,17 +56,23 @@ public abstract class FiniteAutomaton implements Automaton{
 	public final boolean isLast(char name) {return last.containsKey(name);}
 	
 	@Override
-	public String formatAnswer(String word) throws IllegalStateException  {
+	public String testAndGetMessage(String word) throws InvalidAutomatonException  {
 		return word + " " + (isAccepted(word)?"is": "is not") + " an accepted word";
 	}
 	
 	@Override
-	public final String getNodeInfo(char c) {
+	public final String getNodeInfo(char c) throws InvalidNodeException {
+		if(!nodes.containsKey(c))
+			throw new InvalidNodeException("There is no node named " + c);
+		
 		return node(c).toString();
 	}
 	
 	@Override
-	public final void addNode(char name) {
+	public final void addNode(char name) throws InvalidNodeException {
+		if(nodes.containsKey(name))
+			throw new InvalidNodeException("There already exists a node named " + name);
+		
 		Node newNode =  createNode(name);
 		if(first == null)
 			first = newNode;
@@ -75,9 +85,11 @@ public abstract class FiniteAutomaton implements Automaton{
 	protected abstract Node createNode(char name);
 	
 	@Override
-	public final void addNode(char name, boolean isAcceptState) {
+	public final void addNode(char name, boolean isAcceptState) throws InvalidNodeException {
 		addNode(name);
-		if(isAcceptState) makeAcceptState(name);
+		
+		if(isAcceptState) 
+			makeAcceptState(name);
 	}
 	
 	
@@ -94,33 +106,35 @@ public abstract class FiniteAutomaton implements Automaton{
 			return str.toString();
 	}
 	
-	//utility methods
+	//Utility methods
 	
 	/**
 	 * Returns the node in the automaton.
 	 * @param c a character representing the name of the node
 	 * @returns the node with the corresponding name
-	 * @throws NoSuchElementException if there isn't any node with the corresponding name.
+	 * @throws InvalidNodeException if there isn't any node with the corresponding name.
 	 */
-	protected Node node(char name) throws NoSuchElementException{
+	protected Node node(char name) throws InvalidNodeException{
 		Node n = nodes.get(name);
 		if(n == null)
-			throw new NoSuchElementException("There is no node named "+ name);
+			throw new InvalidNodeException("There is no node named "+ name);
 		return n;
 	}
 	
 	/**
-	 * Standard linear search function looking for a character inside the alphabet
-	 * @return -1 if not found, index of s else.
+	 * Returns the index of the provided character in the automaton's alphabet, if it exists.
+	 * 
+	 * @return The index of the character, -1 else.
 	 */
-	protected int findInAlphabet(char s) {	
+	protected int indexInAlphabet(char c) {	
 		for(int i=0; i<alphabet.length; i++)
-			if(alphabet[i] == s)
+			if(alphabet[i] == c)
 				return i;
+		
 		return -1;
-	}	
+	}		
 	
-	private boolean hasDuplicates(char[] arr) { //checks alphabet validity
+	private static boolean hasDuplicates(char[] arr) { //checks alphabet validity
 		for(int i=0; i<=arr.length-1; i++) 
 			for(int j=0; j<=arr.length-1; j++) 
 				if(i!=j) 
@@ -129,7 +143,11 @@ public abstract class FiniteAutomaton implements Automaton{
 		return false;
 	}
 	
-	// Node interface
+	/**
+	 * A node interface to implement the {@link FiniteAutomaton#toString()} method in
+	 * a node-implementation-independent way.
+	 *
+	 */
 	protected abstract class Node {
 		
 		protected final char name;
