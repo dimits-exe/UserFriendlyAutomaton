@@ -27,6 +27,7 @@ public class AutomatonInterpreter {
 	private boolean isClosed = false;
 	private Set<File> importNames = new HashSet<File>(); //prevents recursive imports
 	private PrintStream out, err;
+	private boolean executionWasSuccessful;
 	
 //static methods
 		
@@ -93,6 +94,13 @@ public class AutomatonInterpreter {
 	public boolean isClosed() {return isClosed;}
 	
 	/**
+	 * Whether the last execution of the interpreter was successful.
+	 * 
+	 * @return true if all commands were properly executed, false otherwise. 
+	 */
+	public boolean wasSuccessful() {return executionWasSuccessful;}
+	
+	/**
 	 * Closes the interpreter. No more commands will be accepted.
 	 */
 	public void close() {
@@ -131,7 +139,7 @@ public class AutomatonInterpreter {
 	 * Executes a command on the automaton. Sends any errors in the standard error stream.
 	 * @param s containing the command-keyword and followed by any parameters depending on the command.
 	 */
-	public boolean executeCommand(String s) {
+	public void executeCommand(String s) {
 		String str_com = s.split(" ")[0].toLowerCase().strip(); 		//first word == command keyword
 		Command com = Command.commands.get(str_com);
 		boolean successful = true;
@@ -168,7 +176,7 @@ public class AutomatonInterpreter {
 		if(successful && !isClosed) 
 			record.add(s);
 		
-		return successful;
+		executionWasSuccessful = successful;
 	}
 	
 	/**
@@ -176,35 +184,37 @@ public class AutomatonInterpreter {
 	 * @param commands the text including all the commands
 	 * @see Command#COMMAND_DELIMETER
 	 */
-	public boolean executeBatch(String commands) {
-		if(commands.isBlank()) {
+	public void executeBatch(String commands) {
+		if(commands.isBlank())  {
 			err.println(SyntaxException.ERROR_MESSAGE + "No text found.");
-			return false;
+			executionWasSuccessful = false;
+			return;
 		}
 			
 		int line = 1;
-		boolean successful = true;
 		String actualCode;
 		
 		try {
 			actualCode = Preprocessor.process(commands);
 		} catch(SyntaxException se) {
 			err.println(se.getMessage());
-			return false;
+			executionWasSuccessful = false;
+			return;
 		}
 		
 		for(String command : splitCommands(actualCode)) {
-			if(isClosed)
-				return true;
+			if(isClosed) {
+				executionWasSuccessful = true;
+				return;
+			}
 			
 			successful = executeCommand(command);
 			if(!successful) {
 				err.printf("\t at command number %d, \"%s\"\n",line, command);
-				return false;
+				return;
 			} else
 				line++;
 		}
-		return true;
 	}
 	
 	/**
@@ -242,14 +252,14 @@ public class AutomatonInterpreter {
 	 */
 	void exportToFileSystem(File file) {
 
-		try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
 			
 			for(String s : record) {			//write all commands in the file
 				String commandString = s.split(" ")[0].toLowerCase().strip();
 				Command com = Command.commands.get(commandString);
 				if(com.isExportable) { 			//if writable command
-					out.write(s);
-					out.newLine(); 				//OS independent
+					writer.write(s);
+					writer.newLine(); 				//OS independent
 				}
 			}
 
