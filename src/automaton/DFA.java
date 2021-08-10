@@ -87,6 +87,10 @@ public class DFA extends FiniteAutomaton {
 
 	/**
 	 * A class representing a Node connected to another Node or itself for every letter of a given alphabet
+	 * 
+	 * @implNote The 'adjacent' arrays are mapped 1-1 to the alphabet array. 
+	 * If 'c' is the character in the nth element in the alphabet, the nth element in the adjacency 
+	 * array will be the node after the transition for the character 'c'.
 	 */
 	private class DFANode extends Node {
 		
