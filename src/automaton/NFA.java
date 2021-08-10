@@ -32,7 +32,7 @@ public class NFA extends FiniteAutomaton {
 	
 	@Override
 	public void connect(char nodeName, char letter, char targetName) throws InvalidNodeException, InvalidTransitionException {
-		if(letter != EMPTY && findInAlphabet(letter) == -1)
+		if(letter != EMPTY && indexInAlphabet(letter) == -1)
 			throw new InvalidTransitionException("The letter " + letter + " does not belong in the alphabet");
 		
 		((NFANode) node(nodeName)).connect(letter, (NFANode) node(targetName));
