@@ -213,9 +213,9 @@ class UndoManagerDecorator extends UndoManager implements UndoableEditListener, 
 		@Override          
 		public void keyPressed(KeyEvent e) {
 			if ((e.getKeyCode() == KeyEvent.VK_Z) && ((e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) == KeyEvent.CTRL_DOWN_MASK)) {
-				CompoundUndoManager.this.undo();
+				UndoManagerDecorator.this.undo();
 			} else if ((e.getKeyCode() == KeyEvent.VK_Y) && ((e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) == KeyEvent.CTRL_DOWN_MASK)) {
-				CompoundUndoManager.this.redo();
+				UndoManagerDecorator.this.redo();
 			}
 		}
 
