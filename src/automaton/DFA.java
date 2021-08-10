@@ -18,7 +18,7 @@ public class DFA extends FiniteAutomaton {
 	}
 	
 	@Override
-	public void connect(char nodeName, char letter, char targetName) throws InvalidNodedException, InvalidTransitionException {
+	public void connect(char nodeName, char letter, char targetName) throws InvalidNodeException, InvalidTransitionException {
 		if(letter == EMPTY)
 			throw new InvalidTransitionException("The constant of the empty move should not be used in a Deterministic Automaton");
 		
@@ -139,7 +139,7 @@ public class DFA extends FiniteAutomaton {
 		 * @throws InvalidTransitionException if the input was outside of the alphabet
 		 */
 		char getNeighbour(char letter) throws InvalidTransitionException{
-			int index = int index = indexInAlphabet(letter);
+			int index = indexInAlphabet(letter);
 			
 			if(index == -1) 
 				throw new InvalidTransitionException("Letter " + letter + " is not in the alphabet " + Arrays.toString(alphabet));
