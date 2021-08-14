@@ -1,6 +1,7 @@
 package interpreter;
 
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -211,7 +212,7 @@ enum Command {
 	// general static data
 		static final HashMap<String,Command> commands = new HashMap<String,Command>();
 		
-		static final String[] reservedWords = {"all", "->", "to", ":", "dfa","nfa", "DFA","NFA"};
+		static final Iterable<String> reservedWords = Arrays.asList(new String[]{"all", "->", "to", ":", "dfa","nfa", "DFA","NFA"});
 		
 		/**A description of all defined commands, automatically created at program execution*/ 
 		static final String COMMAND_HELP_LIST; 
