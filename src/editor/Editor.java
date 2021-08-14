@@ -34,7 +34,9 @@ import editor.HighlightedStyledDocument.TextType;
  * 
  * @author dimits
  */
+
 public final class Editor extends JFrame {
+
 	
 //hard-coded data
 	private static final long serialVersionUID = -5206786832243911971L;
@@ -46,7 +48,7 @@ public final class Editor extends JFrame {
 	
 	private static final Color[] colors = {Color.RED, Color.BLACK, Color.BLUE, Color.GREEN, Color.MAGENTA, Color.ORANGE, Color.GRAY};
 	private static final String[] colorNames = {"Red", "Black", "Blue", "Green", "Purple", "Orange","Gray"};
-	
+
 	private final String[] secondaryCommands;
 	private final String[] primaryCommands;
 	
@@ -80,6 +82,7 @@ public final class Editor extends JFrame {
 	
 	private TranslatorInterface translator;
 	private final HighlightedStyledDocument textDocument;
+
 	private final BackgroundRuntime backgroundRuntime;
 	private int lastSavedStringCode; 				//to check if unsaved text is present in the codeArea
 	
@@ -91,6 +94,7 @@ public final class Editor extends JFrame {
 		editor.setResizable(true);
 	}
 	
+
 	@SuppressWarnings("resource") //only relevant to NullOutput streams who by definition do not leak resources
 	public Editor(String title, TranslatorInterface translator) throws HeadlessException {
 		super(title);
@@ -110,6 +114,7 @@ public final class Editor extends JFrame {
 
 		secondaryCommands = secondaryCommandList.toArray(new String[0]);
 	
+
 			
 	//create menus
 		errorColorItems = new JRadioButtonMenuItem[colors.length];
@@ -117,8 +122,10 @@ public final class Editor extends JFrame {
 		fontItems = new JRadioButtonMenuItem[fonts.length];
 		styleItems = new JRadioButtonMenuItem[styles.length];
 		textSizeItems = new JRadioButtonMenuItem[textSizes.length];
+
 		processorHelpItems = new JRadioButtonMenuItem[secondaryCommands.length];
 		interpHelpItems = new JRadioButtonMenuItem[primaryCommands.length];
+
 		lookAndFeelItems = new JRadioButtonMenuItem[looks.length];
 		
 		commentColorItems = new JRadioButtonMenuItem[colors.length];
@@ -146,11 +153,13 @@ public final class Editor extends JFrame {
 		JScrollPane interpreterScroll = new JScrollPane(interpreterConsole, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
 				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		MessageConsole mc = new MessageConsole(interpreterConsole);
+
 		mc.redirectOut(data.noErrorColor, new PrintStream(new NullOutputStream()));
 		mc.redirectErr(data.errorColor, new PrintStream(new NullOutputStream()));
 
 		translator.setOutputStream(System.out); //refresh streams
 		translator.setErrorStream(System.err);
+
 		
 		//code area
 		singleLineCodeArea = new JTextPane();
@@ -164,6 +173,7 @@ public final class Editor extends JFrame {
 		textDocument = new HighlightedStyledDocument(translator, data.syntaxColors.get(TextType.PRIMARY_COMMAND),
 				data.syntaxColors.get(TextType.SECONDARY_COMMAND), data.syntaxColors.get(TextType.COMMENTS), 
 				data.syntaxColors.get(TextType.RESERVED));
+
 		codeArea = new JTextPane(textDocument); 
 		codeArea.setFont(new Font(data.textFont, data.textStyle, data.textSize));
 		codeArea.setBorder(codeBorder);
@@ -290,7 +300,7 @@ public final class Editor extends JFrame {
 		data.syntaxColors.put(TextType.SECONDARY_COMMAND, Color.BLUE);
 		data.syntaxColors.put(TextType.COMMENTS, Color.GRAY);
 		data.syntaxColors.put(TextType.RESERVED, Color.ORANGE);
-		
+
 		for(TextType type : TextType.values())
 			textDocument.changeColors(type, data.syntaxColors[type.index]);
 		
@@ -308,11 +318,12 @@ public final class Editor extends JFrame {
 		styleItems[findObject(styles, data.textStyle)].setSelected(true);
 		textSizeItems[findObject(textSizes,data.textSize)].setSelected(true);
 		lookAndFeelItems[data.UIPreferrence].setSelected(true);	
-		
+	
 		commentColorItems[findObject(colors, data.syntaxColors.get(TextType.COMMENTS))].setSelected(true);
 		reservedColorItems[findObject(colors, data.syntaxColors.get(TextType.RESERVED))].setSelected(true);
 		commandColorItems[findObject(colors, data.syntaxColors.get(TextType.PRIMARY_COMMAND))].setSelected(true);
 		preprocessorColorItems[findObject(colors, data.syntaxColors.get(TextType.SECONDARY_COMMAND))].setSelected(true);
+
 		
 	}
 	
@@ -331,6 +342,7 @@ public final class Editor extends JFrame {
 	/**
 	 * Show a dialog window prompting the user to select a directory to save the file.
 	 */
+
 	@SuppressWarnings("resource") 
 	private void showSaveAsDialog() {
 		JFileChooser fc = new JFileChooser();
@@ -539,6 +551,7 @@ public final class Editor extends JFrame {
 			lookAndFeelItems[i].addActionListener(new LookAndFeelHandler());
 		}
 
+    
 		//error color
 		JMenu errorColorMenu = new JMenu("Error Color");
 		populateMenu(colorNames, errorColorItems, errorColorMenu, new OutputColorHandler());
@@ -556,14 +569,18 @@ public final class Editor extends JFrame {
 				new SyntaxColorHandler(commentColorItems, TextType.COMMENTS));
 
 		//commands
-		JMenu commandColorMenu = new JMenu("Commands");
+		JMenu 
+      = new JMenu("Commands");
 		populateMenu(colorNames, commandColorItems, commandColorMenu,
-				new SyntaxColorHandler(commandColorItems, TextType.PRIMARY_COMMAND)));
+
+				new SyntaxColorHandler(commandColorItems, TextType.PRIMARY_COMMAND));
+
 
 		//preprocessor
 		JMenu preprocessorColorMenu = new JMenu("Preprocessor");
 		populateMenu(colorNames, preprocessorColorItems, preprocessorColorMenu,
-				new SyntaxColorHandler(preprocessorColorItems, TextType.SECONDARY_COMMAND));
+                 new SyntaxColorHandler(preprocessorColorItems, TextType.SECONDARY_COMMAND));
+
 
 		//reserved words
 		JMenu reservedColorMenu = new JMenu("Reserved words");
@@ -625,6 +642,7 @@ public final class Editor extends JFrame {
 		//interpreter help
 		JMenu interpreterHelpMenu = new JMenu("Interpreter");
 		populateMenu(primaryCommands, interpHelpItems, interpreterHelpMenu, new InterpreterHelpHandler());
+
 
 		helpMenu.add(processorHelpMenu);
 		helpMenu.add(interpreterHelpMenu);
@@ -767,6 +785,7 @@ public final class Editor extends JFrame {
 			for (int i=0; i < processorHelpItems.length;i++) {
 				if(processorHelpItems[i].isSelected()) {
 					System.out.println("\n" + translator.getCommandDescription(secondaryCommands[i]));
+
 					break;
 				}
 			}
