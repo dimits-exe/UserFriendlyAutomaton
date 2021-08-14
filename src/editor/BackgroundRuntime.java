@@ -3,8 +3,6 @@ package editor;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 
 import javax.swing.SwingWorker;
@@ -15,7 +13,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
 
-import interpreter.AutomatonInterpreter;
 
 /**
  * A class implementing periodic syntax and runtime checks on the code present in the code area  when needed
@@ -34,9 +31,9 @@ class BackgroundRuntime {
 	private final Timer timer;
 	private final Document doc;
 	private final JTextComponent output; 
-	private final AutomatonEditor autedit;
+	private final Editor autedit;
+	private final TranslatorInterface translator;
 	private Boolean threadIsWorking;
-	
 	private int previousHashCode;
 
 	/**
@@ -46,7 +43,7 @@ class BackgroundRuntime {
 	 * @param output the text component that will display any error messages
 	 * @param doc the document whose contents will be checked
 	 */
-	public BackgroundRuntime(AutomatonEditor autedit, JTextComponent output, Document doc) {
+	public BackgroundRuntime(Editor autedit, TranslatorInterface translator, JTextComponent output, Document doc) {
 		timer = new Timer(CHECKUP_TIME,  new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -59,6 +56,7 @@ class BackgroundRuntime {
 		this.previousHashCode = getText().hashCode();
 		this.output = output;
 		this.autedit = autedit;
+		this.translator = translator;
 		this.threadIsWorking = false;
 	}
 
@@ -116,6 +114,7 @@ class BackgroundRuntime {
 	@SuppressWarnings("rawtypes")
 	private class InterpreterWorker extends SwingWorker{
 
+		
 		@Override
 		protected Object doInBackground() throws Exception {
 			synchronized(threadIsWorking) {
@@ -129,14 +128,9 @@ class BackgroundRuntime {
 
 			// clear area
 			output.setText("");
-
 			
-			try(PrintStream noOutputStream = new PrintStream(new NullOutputStream());
-					PrintStream textAreaOutputStream = new PrintStream(new ConsoleOutputStream(Color.RED, null, output.getDocument(), output, true),true);) {
-				AutomatonInterpreter interp = new AutomatonInterpreter(noOutputStream, textAreaOutputStream);
-				interp.executeBatch(doc.getText(0, doc.getLength()));
-				result(interp.wasSuccessful());
-			}
+			translator.testForErrors(doc.getText(0, doc.getLength()),
+					new PrintStream(new ConsoleOutputStream(Color.RED, null, output.getDocument(), output, true),true));
 
 			return null;
 		}
@@ -153,13 +147,4 @@ class BackgroundRuntime {
 			output.setVisible(!success);
 		}
 	}
-	
-	private class NullOutputStream extends OutputStream {
-		@Override
-		public void write(int b) throws IOException {
-			return;
-		}
-		
-	}
-
 }
