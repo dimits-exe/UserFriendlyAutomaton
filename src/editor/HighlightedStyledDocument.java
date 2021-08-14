@@ -1,6 +1,8 @@
 package editor;
 
 import java.awt.Color;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,15 +13,13 @@ import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 
-import interpreter.AutomatonInterpreter;
-import interpreter.Preprocessor;
 
 /**
  * A document designed to color its text in accordance to {@link Preprocessor} and {@link AutomatonInterpreter} commands and syntax.
  * Effectively implements syntax highlighting for the TextPane that hosts it
  * 
  * @author dimits
- * @author alexm
+ * @author alexm 
  */
 class HighlightedStyledDocument extends DefaultStyledDocument {
 	
@@ -28,37 +28,33 @@ class HighlightedStyledDocument extends DefaultStyledDocument {
      * the Document. Each type is identified by a regular expression (its pattern)
      * and is styled differently.
      */
-	public static enum TextType{
+	public enum TextType{
         /** Type for Automaton commands */
-        INTERPRETER(0, buildPattern(AutomatonInterpreter.getCommands()), boldText),
+        PRIMARY_COMMAND(boldText),
 
         /** Type for Preprocessor commands */
-        PREPROCESSOR(1, buildPattern(Preprocessor.getCommands()), defaultAttributeSet),
+        SECONDARY_COMMAND(defaultAttributeSet),
 
         /** Type for Comments */
-        COMMENTS(2, Pattern.compile(Preprocessor.COMMENT_REGEX), italicText),
+        COMMENTS(italicText),
 
         /** Type for Reserved words */
-        RESERVED(3, buildPattern(AutomatonInterpreter.getReservedWords()), boldText);
-	
-	final int index;
-        private final Pattern pattern;
-        private AttributeSet  attributes;
+        RESERVED(boldText);
+		
+		//Only this class can change the data within the enum
+		
+        private AttributeSet attributes;
 
         /**
          * Constructs the TextType using an index (for spaghetti reasons), a pattern to
          * identify the strings of this TextType and an AttributeSet to define the style
          * of the strings.
-         *
-	 * @param index a unique number for saving attributes
-         * @param pattern    the pattern of the strings
+         * 
          * @param attributes the style of the strings
          */
-        TextType(int index, Pattern pattern, AttributeSet attributes) {
-		this.index = index;
-            	this.pattern = pattern;
-            	this.attributes = attributes;
-	}
+        private TextType(AttributeSet attributes) {
+            this.attributes = attributes;
+		}
 
         /**
          * Changes the color associated with this TextType.
@@ -91,14 +87,19 @@ class HighlightedStyledDocument extends DefaultStyledDocument {
         italicText = styleContext.addAttribute(defaultAttributeSet, StyleConstants.Italic, true);
     }
 	
+    private final Map<TextType, Pattern> typePatterns = new HashMap<>();
     private Boolean isWorking = false; //no that's not a typo, it's a mutex
     private boolean colorsChanged = false;
 
-    public HighlightedStyledDocument(Color commandColor, Color preprocessorColor, Color commentColor, Color reservedColor) {
-        TextType.INTERPRETER.changeColor(commandColor);
-        TextType.PREPROCESSOR.changeColor(preprocessorColor);
+    public HighlightedStyledDocument(TranslatorInterface translatorInfo, Color commandColor, Color preprocessorColor, Color commentColor, Color reservedColor) {
+    	TextType.PRIMARY_COMMAND.changeColor(commandColor);
+        typePatterns.put(TextType.PRIMARY_COMMAND, buildPattern(translatorInfo.getPrimaryCommands()));
+        TextType.SECONDARY_COMMAND.changeColor(preprocessorColor);
+        typePatterns.put(TextType.SECONDARY_COMMAND, buildPattern(translatorInfo.getSecondaryCommands()));
         TextType.COMMENTS.changeColor(commentColor);
+        typePatterns.put(TextType.COMMENTS, Pattern.compile(translatorInfo.getCommentRegex()));
         TextType.RESERVED.changeColor(reservedColor);
+        typePatterns.put(TextType.RESERVED, buildPattern(translatorInfo.getReservedWords()));
     }
     
     
@@ -147,17 +148,14 @@ class HighlightedStyledDocument extends DefaultStyledDocument {
      *
      * @return a pattern describing either one of all the words
      */
-    private static Pattern buildPattern(String[] words) {
-    	/* 	
-	*	Construct the regex: (?<!\w)foo(?!\w)|(?<!\w)bar(?!\w)|...
-    	* 	to match any of the keywords foo, bar separated by anything
-    	*	apart from a \w, with which keywords start and end.
-	*
-    	*	Note that this won't work for keywords like "->" for which
-    	*	/a \w character may be allowed ("->a" is correctly interpreted
-    	*	as "-> a" but the "->" isn't matched).
-	*/
-	    
+    private static Pattern buildPattern(Iterable<String> words) {
+    	// construct the regex: (?<!\w)foo(?!\w)|(?<!\w)bar(?!\w)|...
+    	// to match any of the keywords foo, bar separated by anything
+    	// apart from a \w, with which keywords start and end
+
+    	// note that this won't work for keywords like "->" for which
+    	// a \w character may be allowed ("->a" is correctly interpreted
+    	// as "-> a" but the "->" isn't matched)
     	StringBuilder sb = new StringBuilder();
 
     	for (String token : words) {
@@ -179,7 +177,7 @@ class HighlightedStyledDocument extends DefaultStyledDocument {
 
         // Look for tokens and highlight them
         for (TextType type : TextType.values()) {
-        	 Matcher matcher = type.pattern.matcher(this.getText(0, this.getLength()));
+        	 Matcher matcher = typePatterns.get(type).matcher(this.getText(0, this.getLength()));
         	 
         	 if(colorsChanged) { //run again if the colors changed mid-update
         		 colorsChanged = false;
