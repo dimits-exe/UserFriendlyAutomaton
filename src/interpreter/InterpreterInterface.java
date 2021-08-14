@@ -59,6 +59,11 @@ public class InterpreterInterface implements TranslatorInterface {
 	public Iterable<String> getReservedWords() {
 		return Command.reservedWords;
 	}
+	
+	@Override
+	public String getCommentRegex() {
+		return Preprocessor.COMMENT_REGEX;	
+	}
 
 	@Override
 	public String getCommandDescription(String commandName) throws IllegalArgumentException {
