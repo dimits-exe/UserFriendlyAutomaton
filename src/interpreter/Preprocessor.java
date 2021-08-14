@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * A class that extends the syntax available to the user by translating the
@@ -218,9 +219,9 @@ public class Preprocessor {
 	 *
 	 * @return the array
 	 */
-	public static String[] getCommands() {
+	public static List<String> getCommands() {
 		return Arrays.asList(Token.values()).stream().filter(t -> t != Token.DEFAULT)
-				.map(t -> t.identifier).collect(Collectors.toList()).toArray(new String[0]);
+				.map(t -> t.identifier).collect(Collectors.toList());
 	}
 
 	/**

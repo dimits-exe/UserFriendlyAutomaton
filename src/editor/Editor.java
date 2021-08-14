@@ -18,24 +18,23 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.nio.file.FileSystem;
+import java.io.PrintStream;
 import java.nio.file.FileSystems;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Scanner;
-
-import interpreter.AutomatonInterpreter;
-import interpreter.Preprocessor;
 
 import editor.HighlightedStyledDocument.TextType;
 
 /**
- * A GUI implementation of an automaton interpreter. Designed to be heavily modifiable and user-friendly.
+ * A GUI implementation of an automaton translator. Designed to be heavily modifiable and user-friendly.
  * Uses multithreading to deal with heavy procedures and avoid blocking of UI components.
  * 
  * @author dimits
  */
-public final class AutomatonEditor extends JFrame {
+public final class Editor extends JFrame {
 	
 //hard-coded data
 	private static final long serialVersionUID = -5206786832243911971L;
@@ -48,8 +47,8 @@ public final class AutomatonEditor extends JFrame {
 	private static final Color[] colors = {Color.RED, Color.BLACK, Color.BLUE, Color.GREEN, Color.MAGENTA, Color.ORANGE, Color.GRAY};
 	private static final String[] colorNames = {"Red", "Black", "Blue", "Green", "Purple", "Orange","Gray"};
 	
-	private static final String[] processorCommands = Preprocessor.getCommands();
-	private static final String[] interpeterCommands = AutomatonInterpreter.getCommands();
+	private final String[] secondaryCommands;
+	private final String[] primaryCommands;
 	
 	private static final LookAndFeelInfo[] looks = UIManager.getInstalledLookAndFeels();
 	
@@ -66,7 +65,7 @@ public final class AutomatonEditor extends JFrame {
 	private final JRadioButtonMenuItem[] lookAndFeelItems;
 	
 	private final JRadioButtonMenuItem[] processorHelpItems;
-	private final JRadioButtonMenuItem[] interpHelpItems;
+	private final JRadioButtonMenuItem[] translatorHelpItems;
 	
 	
 //components
@@ -75,42 +74,42 @@ public final class AutomatonEditor extends JFrame {
 	private final JPanel  screensPanel, consolePanel;
 	private final JTextPane codeArea;
 	private final MutableColorBorder codeBorder;
-	private final JTextPane interpreterConsole;
+	private final JTextPane translatorConsole;
 	private final JTextPane singleLineCodeArea; 	//doesn't do anything, will keep it around for any future ideas
 	private final JButton executeButton;
 	
-	private AutomatonInterpreter interp;
-	private HighlightedStyledDocument textDocument;
+	private TranslatorInterface translator;
+	private final HighlightedStyledDocument textDocument;
 	private final BackgroundRuntime backgroundRuntime;
 	private int lastSavedStringCode; 				//to check if unsaved text is present in the codeArea
 	
-	public static void main(String[] args) {
-		AutomatonEditor editor = new AutomatonEditor("Automaton Editor v1");
-		editor.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		editor.setSize(800,700);
-		editor.setVisible(true);
-		editor.setResizable(true);
-	}
-	
-	public AutomatonEditor(String title) throws HeadlessException {
+	@SuppressWarnings("resource") //only relevant to NullOutput streams who by definition do not leak resources
+	public Editor(String title, TranslatorInterface translator) throws HeadlessException {
 		super(title);
 		
-	//define custom close operation to ask user if he wants to save his work before exiting
-		this.addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				exit();
-			}
-		});
-			
-	//create menus
+		//set up translator
+		this.translator = translator;
+		
+		LinkedList<String> primaryCommandList = new LinkedList<String>();
+		for(String command : translator.getPrimaryCommands())
+			primaryCommandList.add(command);
+		
+		primaryCommands = primaryCommandList.toArray(new String[0]);
+		
+		LinkedList<String> secondaryCommandList = new LinkedList<String>();
+		for(String command : translator.getPrimaryCommands())
+			secondaryCommandList.add(command);
+		
+		secondaryCommands = secondaryCommandList.toArray(new String[0]);
+		
+		//create menus
 		errorColorItems = new JRadioButtonMenuItem[colors.length];
 		noErrorColorItems = new JRadioButtonMenuItem[colors.length];
 		fontItems = new JRadioButtonMenuItem[fonts.length];
 		styleItems = new JRadioButtonMenuItem[styles.length];
 		textSizeItems = new JRadioButtonMenuItem[textSizes.length];
-		processorHelpItems = new JRadioButtonMenuItem[processorCommands.length];
-		interpHelpItems = new JRadioButtonMenuItem[interpeterCommands.length];
+		processorHelpItems = new JRadioButtonMenuItem[secondaryCommands.length];
+		translatorHelpItems = new JRadioButtonMenuItem[primaryCommands.length];
 		lookAndFeelItems = new JRadioButtonMenuItem[looks.length];
 		
 		commentColorItems = new JRadioButtonMenuItem[colors.length];
@@ -125,7 +124,7 @@ public final class AutomatonEditor extends JFrame {
 			setLookAndFeel(data.UIPreferrence);
 		}
 		
-	//create components
+		//create components
 		rightBuffer = new JPanel();
 		leftBuffer = new JPanel();
 		screensPanel = new JPanel(); 	//central panel
@@ -133,13 +132,17 @@ public final class AutomatonEditor extends JFrame {
 		
 		//console
 		consoleLabel = new JLabel("Output Console");
-		interpreterConsole = new JTextPane();
-		interpreterConsole.setEditable(false);
-		JScrollPane interpreterScroll = new JScrollPane(interpreterConsole, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
+		translatorConsole = new JTextPane();
+		translatorConsole.setEditable(false);
+		JScrollPane translatorScroll = new JScrollPane(translatorConsole, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
 				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		MessageConsole mc = new MessageConsole(interpreterConsole);
-		mc.redirectOut(data.noErrorColor,null);
-		mc.redirectErr(data.errorColor,null);
+		MessageConsole mc = new MessageConsole(translatorConsole);
+		
+		mc.redirectOut(data.noErrorColor, new PrintStream(new NullOutputStream()));
+		mc.redirectErr(data.errorColor, new PrintStream(new NullOutputStream()));
+		
+		translator.setOutputStream(System.out); //refresh streams
+		translator.setErrorStream(System.err);
 		
 		//code area
 		singleLineCodeArea = new JTextPane();
@@ -150,14 +153,16 @@ public final class AutomatonEditor extends JFrame {
 		codeBorder = new MutableColorBorder(data.noErrorColor);				
 		codeAreaLabel = new JLabel("Editor Area");
 		
-		textDocument = new HighlightedStyledDocument(data.syntaxColors[0],data.syntaxColors[1],data.syntaxColors[2],data.syntaxColors[3]);
+		textDocument = new HighlightedStyledDocument(translator, data.syntaxColors.get(TextType.PRIMARY_COMMAND),
+				data.syntaxColors.get(TextType.SECONDARY_COMMAND), data.syntaxColors.get(TextType.COMMENTS), 
+				data.syntaxColors.get(TextType.RESERVED));
 		codeArea = new JTextPane(textDocument); 
 		codeArea.setFont(new Font(data.textFont, data.textStyle, data.textSize));
 		codeArea.setBorder(codeBorder);
 		
 		UndoManagerDecorator.decorate(codeArea);
 
-		backgroundRuntime = new BackgroundRuntime(AutomatonEditor.this, singleLineCodeArea, codeArea.getDocument());
+		backgroundRuntime = new BackgroundRuntime(Editor.this, translator, singleLineCodeArea, codeArea.getDocument());
 		backgroundRuntime.start();
 
 				
@@ -169,15 +174,15 @@ public final class AutomatonEditor extends JFrame {
 
 		//rest of screens
 		executeButton = new JButton("Execute");		
-		interpreterConsole.setFont(new Font(data.textFont, data.textStyle, data.textSize));
+		translatorConsole.setFont(new Font(data.textFont, data.textStyle, data.textSize));
 		
 	//add listeners
-		executeButton.addActionListener(e->{ executeCode();});
+		executeButton.addActionListener(e->{ executeCode();	});
 		
 	//add components
 		consolePanel.setPreferredSize(new Dimension(700, 500));
 		consolePanel.add(consoleLabel);
-		consolePanel.add(interpreterScroll);
+		consolePanel.add(translatorScroll);
 		
 		screensPanel.add(codeAreaLabel);
 		screensPanel.add(Box.createRigidArea(new Dimension(50,10)));
@@ -201,9 +206,6 @@ public final class AutomatonEditor extends JFrame {
 		screensPanel.setLayout(new BoxLayout(screensPanel,BoxLayout.Y_AXIS));
 		consolePanel.setLayout(new BoxLayout(consolePanel,BoxLayout.Y_AXIS));
 		
-	//build interpreter
-		interp = new AutomatonInterpreter();
-		
 	//attempt to retrieve last text file
 		if(data.lastFile != null && data.lastFile.exists()) {
 			String lastFileText = readFile(data.lastFile);
@@ -221,7 +223,15 @@ public final class AutomatonEditor extends JFrame {
 			private static final long serialVersionUID = 2561258219327746202L;
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				AutomatonEditor.this.save();
+				Editor.this.save();
+			}
+		});
+		
+	//define custom close operation to ask user if he wants to save his work before exiting
+		this.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				exit();
 			}
 		});
 		
@@ -267,14 +277,15 @@ public final class AutomatonEditor extends JFrame {
 		data.noErrorColor = Color.BLUE;
 		data.UIPreferrence = 0;
 		
-		data.syntaxColors = new Color[4];
-		data.syntaxColors[TextType.INTERPRETER.index] = Color.ORANGE;
-		data.syntaxColors[TextType.PREPROCESSOR.index] = Color.BLUE;
-		data.syntaxColors[TextType.COMMENTS.index] = Color.GRAY;
-		data.syntaxColors[TextType.RESERVED.index] = Color.ORANGE;
+		data.syntaxColors = new HashMap<TextType, Color>();
+		data.syntaxColors.put(TextType.PRIMARY_COMMAND , Color.ORANGE);
+		data.syntaxColors.put(TextType.SECONDARY_COMMAND, Color.BLUE);
+		data.syntaxColors.put(TextType.COMMENTS, Color.GRAY);
+		data.syntaxColors.put(TextType.RESERVED, Color.ORANGE);
 		
-		for(TextType type : TextType.values())
-			textDocument.changeColors(type, data.syntaxColors[type.index]);
+		
+		//for(TextType type : TextType.values())
+			//textDocument.changeColors(type, data.syntaxColors.get(type));
 		
 		saveSettings();
 		setMenuData();	
@@ -291,10 +302,10 @@ public final class AutomatonEditor extends JFrame {
 		textSizeItems[findObject(textSizes,data.textSize)].setSelected(true);
 		lookAndFeelItems[data.UIPreferrence].setSelected(true);	
 		
-		commentColorItems[findObject(colors, data.syntaxColors[TextType.COMMENTS.index])].setSelected(true);
-		reservedColorItems[findObject(colors, data.syntaxColors[TextType.RESERVED.index])].setSelected(true);
-		commandColorItems[findObject(colors, data.syntaxColors[TextType.INTERPRETER.index])].setSelected(true);
-		preprocessorColorItems[findObject(colors, data.syntaxColors[TextType.PREPROCESSOR.index])].setSelected(true);
+		commentColorItems[findObject(colors, data.syntaxColors.get(TextType.COMMENTS))].setSelected(true);
+		reservedColorItems[findObject(colors, data.syntaxColors.get(TextType.RESERVED))].setSelected(true);
+		commandColorItems[findObject(colors, data.syntaxColors.get(TextType.PRIMARY_COMMAND))].setSelected(true);
+		preprocessorColorItems[findObject(colors, data.syntaxColors.get(TextType.SECONDARY_COMMAND))].setSelected(true);
 		
 	}
 	
@@ -308,25 +319,26 @@ public final class AutomatonEditor extends JFrame {
 			saveText(data.lastFile);
 		else
 			showSaveAsDialog();
+		
 	}
 	
 	/**
 	 * Show a dialog window prompting the user to select a directory to save the file.
 	 */
+	@SuppressWarnings("resource") 
 	private void showSaveAsDialog() {
 		JFileChooser fc = new JFileChooser();
 		
 		if(data.lastDirectory != null && data.lastDirectory.exists())
 			fc.setCurrentDirectory(data.lastDirectory);
 		else
-			try(FileSystem fs = FileSystems.getDefault()){
-				fc.setCurrentDirectory(fs.getPath(".").toFile());
-			} catch(IOException ioe) {
-				System.err.println("Error while accessing the file system.");
-			}
+			//this may cause a resource leak but windows does NOT like it being closed
+			fc.setCurrentDirectory(FileSystems.getDefault().getPath(".").toFile());
+			
+			
 		
 		fc.setDialogTitle("Save As");
-		int returnVal = fc.showSaveDialog(AutomatonEditor.this);
+		int returnVal = fc.showSaveDialog(Editor.this);
 
         if (returnVal == JFileChooser.APPROVE_OPTION) {
         	saveText(fc.getSelectedFile());
@@ -353,20 +365,19 @@ public final class AutomatonEditor extends JFrame {
     	lastSavedStringCode = codeArea.getText().hashCode();
 	}
 	
+	@SuppressWarnings("resource") 
 	private void showOpenDialog() {
 		JFileChooser fc = new JFileChooser();
 		
 		if(data.lastDirectory != null && data.lastDirectory.exists())
 			fc.setCurrentDirectory(data.lastDirectory);
 		else
-			try(FileSystem fs = FileSystems.getDefault()){
-				fc.setCurrentDirectory(fs.getPath(".").toFile());
-			} catch(IOException ioe) {
-				System.err.println("Error while accessing the file system");
-			}
+			//this may cause a resource leak but windows does NOT like it being closed
+			fc.setCurrentDirectory(FileSystems.getDefault().getPath(".").toFile());
+
 		
 		fc.setDialogTitle("Open File");
-		int returnVal = fc.showOpenDialog(AutomatonEditor.this);
+		int returnVal = fc.showOpenDialog(Editor.this);
 		
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			String code = readFile(fc.getSelectedFile());
@@ -429,7 +440,7 @@ public final class AutomatonEditor extends JFrame {
 		
 		if(exitConfirmed) {
 			saveSettings();
-			interp.close();
+			translator.close();
 			System.exit(0);
 		}
 	}
@@ -488,11 +499,11 @@ public final class AutomatonEditor extends JFrame {
 		fileMenu.add(exitItem);
 
 		newItem.addActionListener(e -> {
-			interp.reset();
+			translator.reset();
 			codeArea.setText("");
 			codeBorder.setColor(data.noErrorColor);
 			singleLineCodeArea.setText("");
-			interpreterConsole.setText("Output will be shown here.");
+			translatorConsole.setText("Output will be shown here.");
 		});
 
 		//Open As
@@ -503,7 +514,7 @@ public final class AutomatonEditor extends JFrame {
 		//Save As
 		saveAsItem.addActionListener(e -> showSaveAsDialog());
 
-		clearConsoleItem.addActionListener(e -> interpreterConsole.setText(""));
+		clearConsoleItem.addActionListener(e -> translatorConsole.setText(""));
 
 		//Exit
 		exitItem.addActionListener(e -> {
@@ -543,12 +554,12 @@ public final class AutomatonEditor extends JFrame {
 		//commands
 		JMenu commandColorMenu = new JMenu("Commands");
 		populateMenu(colorNames, commandColorItems, commandColorMenu,
-				new SyntaxColorHandler(commandColorItems, TextType.INTERPRETER));
+				new SyntaxColorHandler(commandColorItems, TextType.PRIMARY_COMMAND));
 
 		//preprocessor
 		JMenu preprocessorColorMenu = new JMenu("Preprocessor");
 		populateMenu(colorNames, preprocessorColorItems, preprocessorColorMenu,
-				new SyntaxColorHandler(preprocessorColorItems, TextType.PREPROCESSOR));
+				new SyntaxColorHandler(preprocessorColorItems, TextType.SECONDARY_COMMAND));
 
 		//reserved words
 		JMenu reservedColorMenu = new JMenu("Reserved words");
@@ -605,14 +616,14 @@ public final class AutomatonEditor extends JFrame {
 
 		//preprocessor help
 		JMenu processorHelpMenu = new JMenu("Preprocessor");
-		populateMenu(processorCommands, processorHelpItems, processorHelpMenu, new ProcessorHelpHandler());
+		populateMenu(secondaryCommands, processorHelpItems, processorHelpMenu, new ProcessorHelpHandler());
 
-		//interpreter help
-		JMenu interpreterHelpMenu = new JMenu("Interpreter");
-		populateMenu(interpeterCommands, interpHelpItems, interpreterHelpMenu, new InterpreterHelpHandler());
+		//translator help
+		JMenu translatorHelpMenu = new JMenu("translator");
+		populateMenu(primaryCommands, translatorHelpItems, translatorHelpMenu, new translatorHelpHandler());
 
 		helpMenu.add(processorHelpMenu);
-		helpMenu.add(interpreterHelpMenu);
+		helpMenu.add(translatorHelpMenu);
 
 		menuBar.add(fileMenu);
 		menuBar.add(customMenu);
@@ -637,13 +648,13 @@ public final class AutomatonEditor extends JFrame {
 			System.out.println("***************************");
 			System.out.println("Execution started at " + new Date(System.currentTimeMillis()) +":");
 			
-			interp.executeBatch(codeArea.getText());
-
-			changeBorder(interp.wasSuccessful());
+			translator.execute(codeArea.getText());
+			
+			changeBorder(translator.wasSuccessful());
 			
 			System.out.println("***************************");
 			
-			if(!interp.isClosed())
+			if(!translator.isClosed())
 				executeButton.setEnabled(true);
 			return null;
 		}
@@ -660,7 +671,7 @@ public final class AutomatonEditor extends JFrame {
 					break;
 				}	
 			}
-			AutomatonEditor.this.setLookAndFeel(data.UIPreferrence);
+			Editor.this.setLookAndFeel(data.UIPreferrence);
 			saveSettings();
 		}
 	}
@@ -702,7 +713,7 @@ public final class AutomatonEditor extends JFrame {
 			for (int i=0; i< colors.length;i++){
 				if(items[i].isSelected()) {
 					textDocument.changeColors(type, colors[i]);
-					data.syntaxColors[type.index] = colors[i];
+					data.syntaxColors.put(type, colors[i]);
 					break;
 				}	
 			}
@@ -752,21 +763,21 @@ public final class AutomatonEditor extends JFrame {
 			
 			for (int i=0; i < processorHelpItems.length;i++) {
 				if(processorHelpItems[i].isSelected()) {
-					System.out.println("\n" + Preprocessor.getCommandDescription(processorCommands[i]));
+					System.out.println("\n" + translator.getCommandDescription(secondaryCommands[i]));
 					break;
 				}
 			}
 		}
 	}
 	
-	private class InterpreterHelpHandler implements ActionListener {
+	private class translatorHelpHandler implements ActionListener {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			
-			for (int i=0; i < interpHelpItems.length;i++) {
-				if(interpHelpItems[i].isSelected()) {
-					System.out.println("\n" + AutomatonInterpreter.getCommandDescription(interpeterCommands[i]));
+			for (int i=0; i < translatorHelpItems.length;i++) {
+				if(translatorHelpItems[i].isSelected()) {
+					System.out.println("\n" + translator.getCommandDescription(primaryCommands[i]));
 					break;
 				}
 			}

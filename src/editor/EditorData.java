@@ -3,14 +3,16 @@ package editor;
 import java.awt.Color;
 import java.io.File;
 import java.io.Serializable;
+import java.util.HashMap;
 
 /**
  * A class holding internal user data for the editor. 
  * Saved and read upon changing preferences and editor startup respectively.
  *
+ * @author dimits
  */
 class EditorData implements Serializable {
-	private static final long serialVersionUID = 503080483345671378L;
+	private static final long serialVersionUID = 503021483345671378L;
 	
 	int UIPreferrence;
 	String textFont;
@@ -18,7 +20,7 @@ class EditorData implements Serializable {
 	int textSize;
 	Color errorColor;
 	Color noErrorColor;
-	Color [] syntaxColors;
+	HashMap<TextType, Color> syntaxColors;
 	
 	/*
 	 * Why do we need both the last file and the directory it's in?

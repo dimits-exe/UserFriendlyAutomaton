@@ -30,36 +30,6 @@ public class AutomatonInterpreter {
 	private boolean executionWasSuccessful;
 	
 //static methods
-		
-	/**
-	 * Returns a list of every command used by the interpreter.
-	 */
-	public static String[] getCommands() {
-		Set<String> commands = Command.commands.keySet();
-		String[] commandNames = new String[commands.size()];
-		int count = 0;
-		
-		for(String name : commands) 
-			commandNames[count++] = name;
-
-		return commandNames;
-	}
-
-	/**
-	 * Returns a help string for the command of the specific name.
-	 * @throws IllegalArgumentException if the name provided isn't a class-specific command
-	 */
-	public static String getCommandDescription(String commandName) throws IllegalArgumentException {
-		Command c = Command.commands.get(commandName);
-		if(c == null)
-			throw new IllegalArgumentException("Cannot get description: " + commandName + " is not a valid command");
-		else
-			return c.description;
-	} 
-	
-	public static String[] getReservedWords() {
-		return Command.reservedWords;
-	}
 	
 	static String[] splitCommands(String commands) {
 		commands = commands.replace("\n", "").replace("\t", "");
